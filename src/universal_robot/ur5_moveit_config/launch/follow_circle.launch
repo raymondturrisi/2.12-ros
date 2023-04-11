@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="ur5_moveit_config" type="follow_circle.py" name="follow_circle_node" output="screen"/>
+</launch>
