@@ -1,0 +1,4 @@
+<launch>
+  <node name="realsense_driver" pkg="realsense_d435_driver" type="realsense_driver.py" output="screen" />
+</launch>
+
