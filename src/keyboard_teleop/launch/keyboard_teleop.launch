@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- I include this here but do not use it -->
+  <!-- Use: rosrun keyboard_teleop keyboard_teleop.py -->
+  <node name="keyboard_teleop" pkg="keyboard_teleop" type="keyboard_teleop.py" output="screen"/>
+
+</launch>
