@@ -7,7 +7,9 @@
 void setup()
 {
     Serial.begin(115200);
+    Serial.println("Booted!");
     encoderSetup();
+    Serial.println("Booted 2!");
     driveSetup();
     // wirelessSetup();
 }
@@ -33,6 +35,7 @@ float desiredSpeed = 0;
 void loop()
 {
     /// Collection
+    Serial.println("HEWWO?");
     if (Serial.available() > 0) // If there's new data to parse
     {
         size_t byteCount = Serial.readBytesUntil('\n', inputData, sizeof(inputData) - 1); // Read the Data into the buffer
@@ -57,6 +60,7 @@ void loop()
             int dataCount = 0;
 
             char *token = strtok(&inputData[dataPosition], delimiter);
+            // char *token = NULL;
 
             if (token != NULL && strlen(token) < sizeof(parsedCommands[0]))
             {
@@ -166,7 +170,8 @@ void loop()
         // Serial.println(headingError);
 
         // Find movement heading error
-        float leftHandedMovementHeadingAngle = desiredMovementHeading - currentHeading;
+        // float leftHandedMovementHeadingAngle = desiredMovementHeading - currentHeading;  //Uncomment for global movement heading
+        float leftHandedMovementHeadingAngle = desiredMovementHeading - 0; // Relative movement heading
         if (desiredMovementHeading < currentHeading)
         {
             leftHandedMovementHeadingAngle = leftHandedMovementHeadingAngle + 360;
