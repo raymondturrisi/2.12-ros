@@ -1,17 +1,31 @@
 #include <Arduino.h>
-#include "encoder.h"
 #include "drive.h"
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BNO055.h>
+#include <utility/imumaths.h>
 
 #define DEBUG false
+
+Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 void setup()
 {
     Serial.begin(115200);
-    Serial.println("Booted!");
-    encoderSetup();
-    Serial.println("Booted 2!");
     driveSetup();
     // wirelessSetup();
+    /* Initialise the sensor */
+    if (!bno.begin())
+    {
+        /* There was a problem detecting the BNO055 ... check your connections */
+        Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
+        while (1)
+            ;
+    }
+
+    delay(1000);
+
+    bno.setExtCrystalUse(true);
 }
 
 void debugPrint(String debugText)
@@ -27,15 +41,16 @@ char controlKeyword[] = "$CTRL"; //"$CTRL desiredMovementHeading, desiredOrienta
 
 long millisLastDataUpdate = millis();
 float currentHeading;
-float orientationGain = 0.5 / 180.0;
+float orientationGain = 3 / 180.0;
 float desiredMovementHeading = 0;
 float desiredOrientation = 0;
 float desiredSpeed = 0;
 
 void loop()
 {
+    sensors_event_t event;
+    bno.getEvent(&event);
     /// Collection
-    Serial.println("HEWWO?");
     if (Serial.available() > 0) // If there's new data to parse
     {
         size_t byteCount = Serial.readBytesUntil('\n', inputData, sizeof(inputData) - 1); // Read the Data into the buffer
@@ -123,7 +138,7 @@ void loop()
     /// Process assigning motor values.
     // Get compass value.
     // currentHeading = something somthing compass.get();
-    currentHeading = 0;
+    currentHeading = -event.magnetic.x;
     // Serial.println(millis() - millisLastDataUpdate);
     if (millis() - millisLastDataUpdate > 1000)
     {
@@ -202,18 +217,23 @@ void loop()
             backRight = backRight / maximum * desiredSpeed;
         }
 
-        // Serial.println("FIRST--------");
+        // Serial.println("FRST--------");
         // Serial.println(frontLeft);
         // Serial.println(frontRight);
         // Serial.println(backLeft);
         // Serial.println(backRight);
-        frontLeft = (frontLeft + headingError * -orientationGain);
-        frontRight = (frontRight + headingError * orientationGain);
-        backLeft = (backLeft + headingError * -orientationGain);
-        backRight = (backRight + headingError * orientationGain);
+        float maxOrietnation = 0.2;
+        frontLeft = (frontLeft + constrain(headingError * -orientationGain, -maxOrietnation, maxOrietnation));
+        frontRight = (frontRight + constrain(headingError * orientationGain, -maxOrietnation, maxOrietnation));
+        backLeft = (backLeft + constrain(headingError * -orientationGain, -maxOrietnation, maxOrietnation));
+        backRight = (backRight + constrain(headingError * orientationGain, -maxOrietnation, maxOrietnation));
+        // Serial.println(frontLeft);
+        // Serial.println(frontRight);
+        // Serial.println(backLeft);
+        // Serial.println(backRight);
 
         maximum = max(max(abs(frontLeft), abs(frontRight)), max(abs(backLeft), abs(backRight)));
-
+        // Serial.println(maximum);
         if (maximum > 1)
         {
             frontLeft = frontLeft / maximum;
