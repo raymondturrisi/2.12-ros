@@ -15,13 +15,13 @@ import select
 """
 MR_MOVE_KEYS = {
     'e': 0,
-    's': 270,
+    's': 90,
     'c': 180,
-    'f': 90,
-    'w': 315,
-    'r': 45,
-    'x': 225,
-    'v': 135,
+    'f': 270,
+    'w': 45,
+    'r': 315,
+    'x': 135,
+    'v': 225,
     'd': -1,
 } 
 
@@ -66,8 +66,8 @@ if __name__ == "__main__":
     settings = termios.tcgetattr(sys.stdin)
 
     rospy.init_node('keyboard_teleop')
-    ctrl_pub = rospy.Publisher('/to_jetson/ctrl', String, queue_size=1)
-    lift_pub = rospy.Publisher('/to_jetson/lift', String, queue_size=1)
+    ctrl_pub = rospy.Publisher('/to_fw/ctrl', String, queue_size=1)
+    lift_pub = rospy.Publisher('/to_fw/lift', String, queue_size=1)
     last_update = 0 #seconds
     update_interval = 3 #seconds
     heading = 0
@@ -115,9 +115,9 @@ if __name__ == "__main__":
             elif key in MR_ARROW_KEYS.keys():  # Escape character
                 command = MR_ARROW_KEYS[key]
                 if command == 'left_turn':
-                    orientation=abs((orientation-15)%361)
+                    orientation=abs((orientation+15)%361)
                 elif command == 'right_turn':
-                    orientation=(orientation+15)%361
+                    orientation=(orientation-15)%361
                 elif command == 'speed_up':
                     speed+=0.1
                     if speed > 1.0:
