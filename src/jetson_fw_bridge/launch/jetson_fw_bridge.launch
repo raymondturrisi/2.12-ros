@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="jetson_fw_bridge" type="jetson_fw_bridge.py" name="jetson_fw_bridge" output="screen">
+        <param name="serial_port" value="/dev/ttyACM0"/>
+        <param name="baudrate" value="9600"/>
+    </node>
+</launch>
