@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 import rtde_control
 import rtde_receive
@@ -14,12 +15,12 @@ from std_msgs.msg import Int32MultiArray
 
 def urmessage_callback(data):
     if data.data[0]==1:
-        CPR(rtde_r, rtde_c)
+        CPR(rtde_r, rtde_c, ur5_pub_force,ur5_pub_pos)
     else:
         #jog mode 
         currpos=rtde_r.getActualTCPPose()
-        currpos[data.data[1]]+=data.data[2]*0.01
-        rtde_r.moveL(data.pos,0.25,1.2,False)
+        currpos[data.data[1]]+=data.data[2]*0.005
+        rtde_c.moveL(currpos,0.25,1.2,False)
         #time.sleep(1)?
         #should be also outputting!
 
@@ -48,8 +49,8 @@ if __name__ == '__main__':
     # Initialize the ROS node
     rospy.init_node('ur5node')
     # Connect to the UR5 robot via the rtde_control and rtde_receive interfaces
-    rtde_c = rtde_control.RTDEControlInterface('192.168.1.2')
-    rtde_r = rtde_receive.RTDEReceiveInterface('192.168.1.2')
+    rtde_c = rtde_control.RTDEControlInterface('169.254.9.43')
+    rtde_r = rtde_receive.RTDEReceiveInterface('169.254.9.43')
     ur5_pub_force = rospy.Publisher('ur5force', Float32MultiArray, queue_size=10)
     ur5_pub_pos= rospy.Publisher('ur5pos', Float32MultiArray, queue_size=10)
     # Subscribe to the ROS Pose topic

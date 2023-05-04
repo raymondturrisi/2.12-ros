@@ -76,7 +76,7 @@ if __name__ == "__main__":
         key = get_key().lower()
         now = rospy.get_rostime()
         if key=='':
-            pass
+            continue
         if key == 'q':
             break
         """ 
@@ -93,13 +93,17 @@ if __name__ == "__main__":
         if key in stepsize:
             step=stepsize[key]
         elif key in ndirection:
-            step=step*-1
+            if step> 0:
+                step=int(step*-1)
             dir=ndirection[key]
         elif key in direction:
+            if step< 0:
+                step=int(step*-1)
             dir=direction[key]
         
+        print(mode,dir,step)
         msg=Int32MultiArray()
-        msg.data=[mode,direction,step]
+        msg.data=[mode,dir,step]
 
         rospy.loginfo('Sending message: {}'.format(msg))
         print('\r',end='')
