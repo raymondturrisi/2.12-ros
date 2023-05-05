@@ -162,8 +162,8 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
  catkin_install_python(PROGRAMS
    scripts/forceboi.py
-   scripts/ur5_receiver
-   scripts/ur5_teleop
+   scripts/ur5_receiver.py
+   scripts/ur5_teleop.py
    scripts/ur5driver_ros.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
