@@ -16,7 +16,7 @@ def ur5data_subscriber():
     rospy.init_node('ur5data_subscriber', anonymous=True)
 
     # Subscribe to the 'ur5data' topic and set the callback function
-    rospy.Subscriber('ur5pos', Float32MultiArray , ur5data_callback)
+    rospy.Subscriber('ur5force', Float32MultiArray , ur5data_callback)
 
     # Spin the ROS node to receive callbacks
     rospy.spin()
