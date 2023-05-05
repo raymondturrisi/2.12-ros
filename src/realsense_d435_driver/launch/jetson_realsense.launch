@@ -1,0 +1,13 @@
+<launch>
+  <!-- This is for the Jetson only -->
+
+  <!-- Launch the custom realsense_vision node -->
+  <remap from="/realsense/depth/image_raw" to="/rs_jetson/depth/image_raw"/>
+  <remap from="/realsense/color/image_raw" to="/rs_jetson/color/image_raw"/>
+  <node name="realsense_vision" pkg="realsense_d435_driver" type="realsense_driver_vision.py" output="screen" />
+ 
+  <!-- Launch a compression tool for the color topic - depth is fine, and they are pretty much synchronized after compression  -->
+  <node name="image_transport_color" pkg="image_transport" type="republish" respawn="true" output="screen" args="raw in:=/rs_jetson/color/image_raw compressed out:=/rs_jetson/color/image_comp"/>
+
+</launch>
+
