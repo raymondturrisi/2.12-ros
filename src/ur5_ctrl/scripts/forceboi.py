@@ -12,14 +12,23 @@ from std_msgs.msg import Float32MultiArray
 #rtde_r = rtde_receive.RTDEReceiveInterface("169.254.9.43")
 #joint_q = [-47.8, -78, -66, -124, 90, 53]
 #joint_speed=[0,0,1,0,0,0]
+
+
 def rad_angle(arr):
 	c=[i*2*3.1415/360.0 for i in arr]
 	return c
 
 def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
+    #move to starting position, perhaps use forcemode and stuff
+    speed = [0, 0, -0.100, 0, 0, 0]
+    rtde_c.moveUntilContact(speed)
+
     pose = rtde_r.getActualTCPPose()
-    path = path_gen(pose)
-    #print(path)
+    startpose=pose[:]
+    startpose[2]+=0.1
+    rtde_c.moveL(startpose, 0.5,0.5, False)
+
+    path = path_gen(startpose)
     rtde_c.moveL(path, True)
     rate = rospy.Rate(10)
     for i in range(60):
@@ -60,7 +69,7 @@ def path_gen(coordinate):
         newpose=coordinate[:]
         thing = math.radians(angles[i])
         newpose[2] = coordinate[2] +  L/2*math.sin(thing) - L/2
-        newpose.append(1)
+        newpose.append(0.8) #velocity too fast
         newpose.append(1)
         # newpose.append(abs(-1*L*omega*math.cos(thing))) #velocity
         # newpose.append(abs(L*omega*omega*math.sin(thing) + 0.1)) #accel
