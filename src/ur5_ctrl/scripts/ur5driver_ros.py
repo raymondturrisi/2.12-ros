@@ -11,6 +11,16 @@ from std_msgs.msg import Int32MultiArray
 
 
 # Define the ROS callback function for receiving Pose messages
+def avatar_callback(string_data):
+    int_values = [int(val) for val in string_data.split(',')]
+
+    # Create an Int32MultiArray message object
+    int_array_msg = Int32MultiArray()
+
+    # Fill in the values of the Int32MultiArray message
+    int_array_msg.data = int_values
+
+    return urmessage_callback(int_array_msg)
 
 
 def urmessage_callback(data):
@@ -54,5 +64,6 @@ if __name__ == '__main__':
     ur5_pub_force = rospy.Publisher('ur5force', Float32MultiArray, queue_size=10)
     ur5_pub_pos= rospy.Publisher('ur5pos', Float32MultiArray, queue_size=10)
     # Subscribe to the ROS Pose topic
-    rospy.Subscriber('ur5keyboard', Int32MultiArray, urmessage_callback) #do we want to get increments or what?
+    rospy.Subscriber('ur5keyboard', Int32MultiArray, urmessage_callback)
+    rospy.Subscriber('ur5keyboard_avatar', String, avatar_callback)  #do we want to get increments or what?
     publish_pose()
