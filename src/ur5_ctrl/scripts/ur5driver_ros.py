@@ -135,8 +135,10 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     pose1=pose[:]
     pose1[0]+=0.1
     rtde_c.moveL(pose1, 0.5,0.5, False)
+    time.sleep(3)
     r1=triangleloc[0]
     c1=triangleloc[1]
+    print(triangleloc)
     '''
     pose2=pose[:]
     pose2[0]+=0.1
@@ -147,10 +149,16 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     deltar=r1-startr
     deltac=c1-startc
     K=0.1/(deltac**2+deltar**2)**0.5
-    theta=math.atan2(deltar/deltac)
+    theta=math.atan2(deltar,deltac)
+    theta=0
+    deltay=-K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
+    deltax=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
+    print('K',K)
+    print('theta',theta)
+    print(deltax,deltay) 
     finalpose=pose[:]
-    finalpose[0]+=K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
-    finalpose[1]+=-K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
+    finalpose[0]+=deltax
+    finalpose[1]+=deltay
     rtde_c.moveL(finalpose, 0.5,0.5, False)
 
 
@@ -172,5 +180,5 @@ if __name__ == '__main__':
     # Subscribe to the ROS Pose topic
     rospy.Subscriber('ur5keyboard', Int32MultiArray, urmessage_callback)
     rospy.Subscriber('ur5keyboard_avatar', String, avatar_callback)
-    rospy.Subscriber('/realsense/depth/tri_loc', Float32MultiArray, navigation_callback)  #do we want to get increments or what?
+    rospy.Subscriber('/realsense_ur5/depth/tri_loc', Float32MultiArray, navigation_callback)  #do we want to get increments or what?
     publish_pose()

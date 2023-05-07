@@ -16,7 +16,8 @@ def ur5data_subscriber():
     rospy.init_node('ur5data_subscriber', anonymous=True)
 
     # Subscribe to the 'ur5data' topic and set the callback function
-    rospy.Subscriber('ur5force', Float32MultiArray , ur5data_callback)
+    #rospy.Subscriber('ur5force', Float32MultiArray , ur5data_callback)
+    rospy.Subscriber('/realsense_ur5/depth/tri_loc', Float32MultiArray, ur5data_callback)  #do we want to get increments or what?
 
     # Spin the ROS node to receive callbacks
     rospy.spin()

@@ -88,6 +88,8 @@ if __name__ == "__main__":
         """
         if key=='c':
             mode=1
+        elif key=='n':
+            mode=2
         else: 
             mode=0
         if key in stepsize:
