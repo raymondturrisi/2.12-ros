@@ -6,6 +6,7 @@ from forceboi import CPR
 from std_msgs.msg import String
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int32MultiArray
+import math
 
 #from geometry_msgs.msg import Pose, PoseStamped
 
@@ -26,6 +27,8 @@ def avatar_callback(string_data):
 def urmessage_callback(data):
     if data.data[0]==1:
         CPR(rtde_r, rtde_c, ur5_pub_force,ur5_pub_pos)
+    if data.data[0]==2:
+        navigation(rtde_r, rtde_c,ur5_pub_navigation)
     else:
         #jog mode 
         currpos=rtde_r.getActualTCPPose()
@@ -54,16 +57,54 @@ def publish_pose():
         # Sleep to maintain the ROS rate
         rate.sleep()
 
+def navigation_callback(string_data):
+    global triangleloc 
+    triangleloc = string_data.data
+
+def navigation(rtde_r,rtde_c,ur5_pub_navigation):
+    startx=triangleloc[0]
+    starty=triangleloc[1]
+    print(triangleloc)
+    pose=rtde_r.getActualTCPPose()
+    pose1=pose[:]
+    pose1[0]+=0.1
+    rtde_c.moveL(pose1, 0.5,0.5, False)
+    x1=triangleloc[0]
+    y1=triangleloc[1]
+    '''
+    pose2=pose[:]
+    pose2[0]+=0.1
+    rtde_c.moveL(pose2, 0.5,0.5, False)
+    x2=triangleloc[0]
+    y2=triangleloc[1]
+    '''
+    deltar=x1-startx
+    deltac=y1-starty
+    K=0.1/(deltac**2+deltar**2)**0.5
+    theta=math.tanh(deltac/deltar)
+    finalpose=pose[:]
+    finalpose[1]+=(startx-240)*K
+    finalpose[0]+=(starty-320)*K
+    rtde_c.moveL(finalpose, 0.5,0.5, False)
+
+
+
+
+    
+
 
 if __name__ == '__main__':
     # Initialize the ROS node
+    triangleloc=[0,0,0]
     rospy.init_node('ur5node')
     # Connect to the UR5 robot via the rtde_control and rtde_receive interfaces
     rtde_c = rtde_control.RTDEControlInterface('169.254.9.43')
     rtde_r = rtde_receive.RTDEReceiveInterface('169.254.9.43')
     ur5_pub_force = rospy.Publisher('ur5force', Float32MultiArray, queue_size=10)
     ur5_pub_pos= rospy.Publisher('ur5pos', Float32MultiArray, queue_size=10)
+    ur5_pub_navigation=rospy.Publisher('ur5nav_request', Int32MultiArray, queue_size=10)
     # Subscribe to the ROS Pose topic
     rospy.Subscriber('ur5keyboard', Int32MultiArray, urmessage_callback)
-    rospy.Subscriber('ur5keyboard_avatar', String, avatar_callback)  #do we want to get increments or what?
+    rospy.Subscriber('ur5keyboard_avatar', String, avatar_callback)
+    rospy.Subscriber('/realsense/depth/tri_loc', Float32MultiArray, navigation_callback)  #do we want to get increments or what?
     publish_pose()
