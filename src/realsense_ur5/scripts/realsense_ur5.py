@@ -9,6 +9,31 @@ from std_msgs.msg import String, Float32MultiArray
 import sensor_msgs.point_cloud2 as pc2
 import std_msgs.msg
 
+'''
+from tkinter import *
+import threading
+import math
+
+
+global tk
+tk = Tk()
+global l_h, u_h, l_s, u_s, l_v, u_v
+l_h = Scale(tk, from_ = 0, to = 255, label = 'Hue, lower', orient = HORIZONTAL)
+l_h.pack()
+u_h = Scale(tk, from_ = 0, to = 255, label = 'Hue, upper', orient = HORIZONTAL)
+u_h.pack()
+u_h.set(255)
+l_s = Scale(tk, from_ = 0, to = 255, label = 'Saturation, lower', orient = HORIZONTAL)
+l_s.pack()
+u_s = Scale(tk, from_ = 0, to = 255, label = 'Saturation, upper', orient = HORIZONTAL)
+u_s.pack()
+u_s.set(255)
+l_v = Scale(tk, from_ = 0, to = 255, label = 'Value, lower', orient = HORIZONTAL)
+l_v.pack()
+u_v = Scale(tk, from_ = 0, to = 255, label = 'Value, upper', orient = HORIZONTAL)
+u_v.pack()
+u_v.set(255)
+'''
 
 def numpy_to_image_msg(numpy_img, encoding, frame_id):
     img_msg = Image()
@@ -40,12 +65,12 @@ def main():
     align = rs.align(align_to)
 
     # Create publishers for depth and color images
-    depth_pub = rospy.Publisher('/realsense/depth/image_raw', Image, queue_size=100)
-    color_pub = rospy.Publisher('/realsense/color/image_raw', Image, queue_size=100)
-    filtered_pub = rospy.Publisher('/realsense/color/image_filt', Image, queue_size = 100)
+    depth_pub = rospy.Publisher('/realsense_ur5/depth/image_raw', Image, queue_size=100)
+    color_pub = rospy.Publisher('/realsense_ur5/color/image_raw', Image, queue_size=100)
+    filtered_pub = rospy.Publisher('/realsense_ur5/color/image_filt', Image, queue_size = 100)
     
     # Create publisher for distance and position information
-    tri_loc_pub = rospy.Publisher('/realsense/depth/tri_loc', Float32MultiArray, queue_size = 10)
+    tri_loc_pub = rospy.Publisher('/realsense_ur5/depth/tri_loc', Float32MultiArray, queue_size = 10)
     rate = rospy.Rate(15)  # 30 Hz
 
     try:
@@ -54,6 +79,8 @@ def main():
             frames = pipeline.wait_for_frames()
             depth_frame = frames.get_depth_frame()
             color_frame = frames.get_color_frame()
+            
+            #tk.update()
             
             # Get distance of a pixel
             x = 320
@@ -94,27 +121,12 @@ def main():
             cv2.waitKey(1)
             
             
-            
-            # RGB Thresholding
-            lower_bound_RGB = np.array([0, 0, 80])
-            upper_bound_RGB = np.array([131, 90, 255])
-            #lower_bound_RGB = np.array([l_b.get(), l_g.get(), l_r.get()])
-            #upper_bound_RGB = np.array([u_b.get(), u_g.get(), u_r.get()])
-            
-            # Threshold
-            mask_RGB = cv2.inRange(images, lower_bound_RGB, upper_bound_RGB)
-            
-            # Display image
-            disp_image_RGB = cv2.bitwise_and(images, images, mask = mask_RGB)
-            cv2.imshow('RGBThresholding', disp_image_RGB)
-            cv2.waitKey(3)
-            
             # Convert to HSV
             hsv_image = cv2.cvtColor(images, cv2.COLOR_BGR2HSV)
             
             # HSV Thresholding
-            lower_bound_HSV = np.array([0, 0, 116])
-            upper_bound_HSV = np.array([83, 255, 255])
+            lower_bound_HSV = np.array([0, 26, 143])
+            upper_bound_HSV = np.array([98, 255, 255])
             #lower_bound_HSV = np.array([l_h.get(), l_s.get(), l_v.get()])
             #upper_bound_HSV = np.array([u_h.get(), u_s.get(), u_v.get()])
             
