@@ -139,6 +139,11 @@ void loop()
     // Get compass value.
     // currentHeading = something somthing compass.get();
     currentHeading = -event.magnetic.x;
+
+    Serial.print("$STATE,");
+    Serial.print(currentHeading);
+    Serial.println(",*");
+
     // Serial.println(millis() - millisLastDataUpdate);
     if (millis() - millisLastDataUpdate > 1000)
     {
