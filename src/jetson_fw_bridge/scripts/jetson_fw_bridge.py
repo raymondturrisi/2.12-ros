@@ -51,7 +51,7 @@ class ROSArduinoBridge(object):
 
     def connect_to_arduino(self):
         port = rospy.get_param("~serial_port", "/dev/ttyACM0")
-        baudrate = rospy.get_param("~baudrate", 9600)
+        baudrate = rospy.get_param("~baudrate", 115200)
         self.serial = ArduinoSerial(port, baudrate)
         self.serial.connect()
 

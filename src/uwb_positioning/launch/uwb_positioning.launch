@@ -1,0 +1,6 @@
+<launch>
+
+  <!-- I include this here but do not use it -->
+  <node name="uwb_positioning" pkg="uwb_positioning" type="uwb_positioning.py" output="screen"/>
+
+</launch>
