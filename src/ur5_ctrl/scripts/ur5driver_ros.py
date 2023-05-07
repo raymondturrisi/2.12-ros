@@ -62,15 +62,15 @@ def navigation_callback(string_data):
     triangleloc = string_data.data
 
 def navigation(rtde_r,rtde_c,ur5_pub_navigation):
-    startx=triangleloc[0]
-    starty=triangleloc[1]
+    startr=triangleloc[0]
+    startc=triangleloc[1]
     print(triangleloc)
     pose=rtde_r.getActualTCPPose()
     pose1=pose[:]
     pose1[0]+=0.1
     rtde_c.moveL(pose1, 0.5,0.5, False)
-    x1=triangleloc[0]
-    y1=triangleloc[1]
+    r1=triangleloc[0]
+    c1=triangleloc[1]
     '''
     pose2=pose[:]
     pose2[0]+=0.1
@@ -78,13 +78,13 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     x2=triangleloc[0]
     y2=triangleloc[1]
     '''
-    deltar=x1-startx
-    deltac=y1-starty
+    deltar=r1-startr
+    deltac=c1-startc
     K=0.1/(deltac**2+deltar**2)**0.5
-    theta=math.tanh(deltac/deltar)
+    theta=math.atan2(deltar/deltac)
     finalpose=pose[:]
-    finalpose[1]+=(startx-240)*K
-    finalpose[0]+=(starty-320)*K
+    finalpose[0]+=K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
+    finalpose[1]+=-K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
     rtde_c.moveL(finalpose, 0.5,0.5, False)
 
 
