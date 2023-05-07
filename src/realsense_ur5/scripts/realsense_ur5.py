@@ -5,7 +5,7 @@ import pyrealsense2.pyrealsense2 as rs
 import numpy as np
 import cv2
 from sensor_msgs.msg import Image, PointCloud2, PointField
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32MultiArray
 import sensor_msgs.point_cloud2 as pc2
 import std_msgs.msg
 
@@ -45,8 +45,7 @@ def main():
     filtered_pub = rospy.Publisher('/realsense/color/image_filt', Image, queue_size = 100)
     
     # Create publisher for distance and position information
-    distance_pub = rospy.Publisher('/realsense/depth/depth_info', String, queue_size = 10)
-
+    tri_loc_pub = rospy.Publisher('/realsense/depth/tri_loc', Float32MultiArray, queue_size = 10)
     rate = rospy.Rate(15)  # 30 Hz
 
     try:
@@ -56,14 +55,14 @@ def main():
             depth_frame = frames.get_depth_frame()
             color_frame = frames.get_color_frame()
             
-            
-            x = 400
-            y = 300
+            # Get distance of a pixel
+            x = 320
+            y = 240
             dpt_frame = pipeline.wait_for_frames().get_depth_frame().as_depth_frame()
             pixel_distance_in_meters = dpt_frame.get_distance(x, y)
-            print('Distance of (400, 300): ', pixel_distance_in_meters)
-            rospy.loginfo(pixel_distance_in_meters)
-            distance_pub.publish(pixel_distance_in_meters)
+            #print('Distance of (400, 300): ', pixel_distance_in_meters)
+            #rospy.loginfo(pixel_distance_in_meters)
+            #distance_pub.publish(pixel_distance_in_meters)
             
             # Convert frames to images
             depth_image = np.asanyarray(depth_frame.get_data())
@@ -85,9 +84,9 @@ def main():
             # If depth and color resolutions are different, resize color image to match depth image for display
             if depth_colormap_dim != color_colormap_dim:
             	resized_color_image = cv2.resize(color_image, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
-            	images = np.hstack((resized_color_image, depth_colormap))
+            	images = resized_color_image
             else:
-            	images = np.hstack((color_image, depth_colormap))
+            	images = color_image
             
             # Show images
             cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
@@ -127,11 +126,33 @@ def main():
             cv2.imshow("HSVThresholding", disp_image_HSV)
             cv2.waitKey(3)
             
-            HSV_vals = np.zeros((num_rows, num_cols))
+            h, s, gray = cv2.split(disp_image_HSV) # v1 is the gray image
+            ret,thresh = cv2.threshold(gray,70,255,0)
+            # Display the Binary Image
+            cv2.imshow("Binary Image", thresh)
+            cv2.waitKey(3)
+            
+
+            
+            loc = []
             for j in range(num_cols):
             	for i in range(num_rows):
-            		HSV_vals[i][j]
-            		
+            		if thresh[i][j] > 0.5:
+            			loc.append((i,j))
+            x_avg=0
+            y_avg=0
+            for pxl in loc:
+            	x_avg += pxl[0]/len(loc)
+            	y_avg += pxl[1]/len(loc)
+            	 
+            
+            #for (x, y) in loc:
+            triloc=Float32MultiArray()
+            triloc.data=[x_avg,y_avg,pixel_distance_in_meters]
+            tri_loc_pub.publish(triloc)
+            print(triloc)
+
+
             filtered_pub.publish(numpy_to_image_msg(disp_image_HSV, "bgr8", "realsense_filtered_frame"))
             
             
