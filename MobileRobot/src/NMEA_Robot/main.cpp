@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "drive.h"
 #include <Wire.h>
+#include <Servo.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
@@ -8,6 +9,7 @@
 #define DEBUG false
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
+Servo liftMotor;
 
 void setup()
 {
@@ -15,6 +17,9 @@ void setup()
     driveSetup();
     // wirelessSetup();
     /* Initialise the sensor */
+
+    liftMotor.attach(13);
+
     if (!bno.begin())
     {
         /* There was a problem detecting the BNO055 ... check your connections */
@@ -38,13 +43,16 @@ void debugPrint(String debugText)
 
 char inputData[100] = "";
 char controlKeyword[] = "$CTRL"; //"$CTRL desiredMovementHeading, desiredOrientation, speed"
+char liftKeyword[] = "$LFT";     //"$CTRL speed"
 
 long millisLastDataUpdate = millis();
+long millisLastLiftUpdate = millis();
 float currentHeading;
 float orientationGain = 3 / 180.0;
 float desiredMovementHeading = 0;
 float desiredOrientation = 0;
 float desiredSpeed = 0;
+float desriedLift = 0;
 
 void loop()
 {
@@ -59,12 +67,34 @@ void loop()
 
         /// Parsing
         char *controlKeywordPointer = strstr(inputData, controlKeyword);
+        char *liftKeywordPointer = strstr(inputData, liftKeyword);
         if (controlKeywordPointer == NULL)
         {
-            Serial.println("Couldn't find control keyword.");
+            // Start looking for lift
+            if (liftKeywordPointer == NULL)
+            {
+                Serial.println("Couldn't find keyword");
+            }
+            else
+            {
+
+                int dataPosition = (liftKeywordPointer - inputData) + strlen(liftKeyword);
+                const char delimiter[] = ",";
+                char liftCommand[10];
+                char *Lifttoken = strtok(&inputData[dataPosition], delimiter);
+
+                if (Lifttoken != NULL && strlen(Lifttoken) < sizeof(liftCommand))
+                {
+                    strncpy(liftCommand, Lifttoken, sizeof(liftCommand));
+                }
+                desriedLift = atof(liftCommand);
+                Serial.println(desriedLift);
+                millisLastLiftUpdate = millis();
+            }
         }
         else
         {
+            // Process $CTRL
             int dataPosition = (controlKeywordPointer - inputData) + strlen(controlKeyword);
 
             const char delimiter[] = ",";
@@ -72,10 +102,8 @@ void loop()
             // parsedCommands[0] = NULL;  // Other fixes that don't work. Don't have time to fix.
             // parsedCommands[1] = "\n";
             // parsedCommands[2] = "\n";
-            int dataCount = 0;
-
             char *token = strtok(&inputData[dataPosition], delimiter);
-            // char *token = NULL;
+            int dataCount = 0;
 
             if (token != NULL && strlen(token) < sizeof(parsedCommands[0]))
             {
@@ -145,6 +173,16 @@ void loop()
     Serial.println(",*");
 
     // Serial.println(millis() - millisLastDataUpdate);
+    if (millis() - millisLastLiftUpdate > 1000)
+    {
+        liftMotor.write(0);
+        // Serial.println("Zero lift");
+    }
+    else
+    {
+        liftMotor.write(desriedLift);
+        // Serial.println("Setting lift");
+    }
     if (millis() - millisLastDataUpdate > 1000)
     {
         // Set motors to 0 no matter what
