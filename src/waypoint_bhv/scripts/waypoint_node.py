@@ -13,11 +13,12 @@ from scipy.ndimage.filters import convolve
 import matplotlib.pyplot as plt
 
 class Grid:
-    def __init__(self, length_m, width_m, step_size_m):
-        n_idcs_length = int(length_m//step_size_m)
-        n_idcs_width = int(width_m//step_size_m)
-        self.length_m = length_m
-        self.width_m = width_m
+    def __init__(self, length_m, width_m, padding_m, step_size_m):
+        n_idcs_length = int((length_m+padding_m)//step_size_m)
+        n_idcs_width = int((width_m+padding_m)//step_size_m)
+        self.length_m = length_m+padding_m
+        self.width_m = width_m+padding_m
+        self.padding_m = padding_m
         self.length_idcs = n_idcs_length
         self.width_idcs = n_idcs_width
         self.step_size = step_size_m
@@ -28,7 +29,6 @@ class Grid:
         for i in range(0,n_idcs_width):
             self.boundary[0,i] = 1
             self.boundary[n_idcs_length-1,i] = 1
-
         #apply the boundary along the left and right
         for j in range(1,n_idcs_length-1):
             self.boundary[j,0] = 1
@@ -42,13 +42,13 @@ class Grid:
             If we have a step size of 0.1, a width of 3 m, we'll have 30 steps
             At 1.5, we'll want around the 14th index
         """
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Requested point out of bounds! <{x_c}, {y_c}>")
             return False, False
-        return int(x_c//self.step_size), int(y_c//self.step_size)
+        return int((x_c)//self.step_size), int((y_c)//self.step_size)
     
     def get_point(self, x_c, y_c):
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Requested point out of bounds! <{x_c}, {y_c}>")
             return False
         x_d, y_d = self.get_idcs(x_c, y_c)
@@ -57,14 +57,14 @@ class Grid:
     def get_coords(self, x_d, y_d):
         if (x_d <= 0 or x_d > self.width_idcs) or (y_d <= 0 or y_d > self.length_idcs):
             print(f"Requested point out of bounds! <{x_d}, {y_d}>")
-            return False
-        return x_d*self.step_size, y_d*self.step_size 
+            return False, False
+        return (x_d*self.step_size), (y_d*self.step_size )
 
     def insert_obstacle(self, x_c, y_c): 
         """
             Insert an obstacle at some x,y point
         """
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Obstacle out of bounds! <{x_c}, {y_c}>")
             return False
         x_d, y_d = self.get_idcs(x_c, y_c)
@@ -109,10 +109,12 @@ class Grid:
         if initial_point is not None:
             initial_x, initial_y = self.get_idcs(*initial_point)
             plt.plot(initial_x, initial_y, 'go', MarkerSize=8)
+            plt.text(initial_x,initial_y,f"Start {self.get_coords(initial_x, initial_y)}", style='italic')
 
         if target is not None:
             target_x, target_y = self.get_idcs(*target)
             plt.plot(target_x, target_y, 'gx', MarkerSize=8)
+            plt.text(target_x, target_y,f"End {self.get_coords(target_x, target_y)}", style='italic')
 
         if path is not None:
             xs, ys = zip(*path)
@@ -121,14 +123,14 @@ class Grid:
         x_ticks = np.linspace(0,self.width_idcs,n_ticks)
         y_ticks = np.linspace(0,self.length_idcs,n_ticks)
 
-        x_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(0,self.width_m, n_ticks)]
-        y_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(0,self.length_m, n_ticks)]
+        x_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(-self.padding_m/2,self.width_m+self.padding_m/2, n_ticks)]
+        y_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(-self.padding_m/2,self.length_m+self.padding_m/2, n_ticks)]
 
         plt.xticks(x_ticks, x_tick_labels)
         plt.yticks(y_ticks, y_tick_labels)
 
         plt.colorbar()
-        plt.show(block=False)
+        plt.show()
         return True
 
 class Waypoint:
@@ -168,6 +170,12 @@ class WaypointBHV:
                 return path, path
             else:
                 return path, [self.grid.get_coords(*pair) for pair in path]
+            
+    def simplify_path(path_by_idx, path_by_wpt):
+        crosses = [[[0,1],[0,-1]], [[1,0],[-1,0]],[[1,1],[-1,-1]]]
+
+        for elem in path_by_idx:
+            pass
 
     def a_star_search(self, start_m, end_m):
         def heuristic(a, b):
@@ -216,7 +224,8 @@ class WaypointController:
         self.speed = 0.1
         self.compass_setup_offset = 0
         # Initialize the grid and waypoint behaviors
-        self.grid = Grid(self.length_m, self.width_m, self.step_size_m)
+        self.padding = 1
+        self.grid = Grid(self.length_m, self.width_m, self.padding, self.step_size_m)
         self.grid.update_grid(self.obst_r, self.wall_r)
         initial_1 = [3.2, 1.4] #arbitrary
         self.pos_1_init = False
@@ -294,6 +303,9 @@ class WaypointController:
                     #If we are near the final target
                     self.system_state = 'aligning'
                     self.system_state_pub.publish('aligning')
+                    msg = "$CTRL,0,{self.wpt1.goal.approach_angle},0,*"
+                    self.ctrl_pub(msg)
+
                 else:
                     print("No plan available!!")
             else:
@@ -311,7 +323,6 @@ class WaypointController:
                 #remove all the points within the capture radius
                 print(f"Plan: {self.plan_2}")
                 while True:
-                    print("Popping elements")
                     if self.plan_1:
                         next_waypoint = self.plan_2[0]
                         distance_to_waypoint = (
@@ -321,7 +332,6 @@ class WaypointController:
                         else:
                             break
                     else:
-                        print("Broke out")
                         break
                 #If we still have a plan
                 if self.plan_2:
@@ -332,6 +342,8 @@ class WaypointController:
                     #If we are near the final target
                     self.system_state = 'unpacking_aed'
                     self.system_state_pub.publish('unpacking_aed')
+                    msg = "$CTRL,0,{self.wpt2.goal.approach_angle},0,*"
+                    self.ctrl_pub(msg)
                 else:
                     print("No plan available!!")
             else:

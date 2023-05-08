@@ -44,7 +44,7 @@ class Grid:
         if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Requested point out of bounds! <{x_c}, {y_c}>")
             return False, False
-        return int((self.padding_m/2+x_c)//self.step_size), int((self.padding_m/2+y_c)//self.step_size)
+        return int((x_c)//self.step_size), int((y_c)//self.step_size)
     
     def get_point(self, x_c, y_c):
         if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
@@ -57,7 +57,7 @@ class Grid:
         if (x_d <= 0 or x_d > self.width_idcs) or (y_d <= 0 or y_d > self.length_idcs):
             print(f"Requested point out of bounds! <{x_d}, {y_d}>")
             return False, False
-        return (self.padding_m/2+x_d*self.step_size), (self.padding_m/2+y_d*self.step_size )
+        return (x_d*self.step_size), (y_d*self.step_size )
 
     def insert_obstacle(self, x_c, y_c): 
         """
@@ -108,10 +108,12 @@ class Grid:
         if initial_point is not None:
             initial_x, initial_y = self.get_idcs(*initial_point)
             plt.plot(initial_x, initial_y, 'go', MarkerSize=8)
+            plt.text(initial_x,initial_y,f"Start {self.get_coords(initial_x, initial_y)}", style='italic')
 
         if target is not None:
             target_x, target_y = self.get_idcs(*target)
             plt.plot(target_x, target_y, 'gx', MarkerSize=8)
+            plt.text(target_x, target_y,f"End {self.get_coords(target_x, target_y)}", style='italic')
 
         if path is not None:
             xs, ys = zip(*path)
