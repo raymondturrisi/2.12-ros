@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- I include this here but do not use it -->
+  <node name="ur5_receiver" pkg="ur5_ctrl" type="ur5_receiver.py" output="screen"/>
+  <node name="ur5_driver" pkg="ur5_ctrl" type="ur5driver.py" output="screen"/>
+  <node name="ur5_force_ctrl" pkg="ur5_ctrl" type="forceboi.py" output="screen"/>
+
+</launch>
