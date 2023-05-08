@@ -128,7 +128,7 @@ class Grid:
         plt.yticks(y_ticks, y_tick_labels)
 
         plt.colorbar()
-        plt.show()
+        plt.show(block=False)
         return True
 
 class Waypoint:
@@ -212,31 +212,35 @@ class WaypointController:
         self.step_size_m = 0.05
         self.obst_r = 0.2
         self.wall_r = 0.00
-        self.capture_radius = 0.04
-        self.speed = 0.2
-        self.compass_setup_offset = 90
+        self.capture_radius = 0.05
+        self.speed = 0.1
+        self.compass_setup_offset = 0
         # Initialize the grid and waypoint behaviors
         self.grid = Grid(self.length_m, self.width_m, self.step_size_m)
         self.grid.update_grid(self.obst_r, self.wall_r)
-        initial_1 = [3.2, 1.8]
-        goal_1 = [3.12, 0.05]
+        initial_1 = [3.2, 1.4] #arbitrary
+        self.pos_1_init = False
+        goal_1 = [2.94, 0.48]
         goal_1_lead_angle = 0
-        goal_1_lead_length = 0.5
-        initial_2 = [3, 0.1]
-        goal_2 = [0.24, 2.08]
+        goal_1_lead_length = 0.75
+        self.last_heading = 0
+        self.last_orientation = 0
+        initial_2 = [3, 0.1] #arbitrary
+        self.pos_2_init = False
+        goal_2 = [0.62, 2.32]
         goal_2_lead_angle = 180
-        goal_2_lead_length = 0.1
+        goal_2_lead_length = 0.5
         self.wpt1 = WaypointBHV(initial_1, Waypoint(goal_1, goal_1_lead_angle, goal_1_lead_length), self.grid)
         self.wpt2 = WaypointBHV(initial_2, Waypoint(goal_2, goal_2_lead_angle, goal_2_lead_length), self.grid)
-        self.plan_1 = self.wpt1.get_path()
-        self.plan_2 = self.wpt2.get_path()
+        self.plan1_by_idx, self.plan_1 = self.wpt1.get_path()
+        self.plan2_by_idx, self.plan_2 = self.wpt2.get_path()
         self.current_position = initial_1
         # Create the publishers and subscribers
         self.pose_sub = rospy.Subscriber(
             '/uwb_pose', PoseStamped, self.pose_callback)
         
         self.obstacles_sub = rospy.Subscriber(
-            '/obstacles', String, self.obstacles_callback)
+            '/mr/obstacles', String, self.obstacles_callback)
         
         self.system_state_sub = rospy.Subscriber(
             '/system_state', String, self.system_state_callback)
@@ -254,37 +258,84 @@ class WaypointController:
     def pose_callback(self, msg):
         # Check if the current position is within the capture radius of the next waypoint
         self.current_position = [msg.pose.position.x, msg.pose.position.y]
+        print(f"Updating point: {self.current_position}")
+        #self.wpt1.grid.show_grid(initial_point=self.current_position,target=self.wpt1.goal.point,path=self.plan1_by_idx)
+        #If we are in the wpt 1 state
         if self.system_state == 'wpt1':
+            self.wpt1.initial_position = self.current_position
+            self.grid.update_grid(self.obst_r, self.wall_r)
+            self.plan1_by_idx, self.plan_1 = self.wpt1.get_path(True)
+            #Observe the total distance to the actual target
+            distance_to_target = (
+                    (self.current_position[0] - self.wpt1.goal.point[0])**2 + (self.current_position[1] - self.wpt1.goal.point[1])**2)**0.5
+            #If the plan is not nonetype
             if self.plan_1:
-                next_waypoint = self.plan_1[0]
-                distance_to_waypoint = (
-                    (self.current_position[0] - next_waypoint[0])**2 + (self.current_position[1] - next_waypoint[1])**2)**0.5
-                if distance_to_waypoint < self.capture_radius:
-                    self.plan_1.pop(0)
+                #remove all the points within the capture radius
+                print(f"Plan: {self.plan_1}")
+                while True:
+                    print("Popping elements")
                     if self.plan_1:
                         next_waypoint = self.plan_1[0]
-                        self.publish_ctrl_msg(next_waypoint)
+                        distance_to_waypoint = (
+                            (self.current_position[0] - next_waypoint[0])**2 + (self.current_position[1] - next_waypoint[1])**2)**0.5
+                        if distance_to_waypoint < self.capture_radius:
+                            self.plan_1.pop(0)
+                        else:
+                            break
                     else:
-                        self.system_state = 'aligning_aed'
-                        self.system_state_pub.publish('alignment_aed')
-                else:
+                        print("Broke out")
+                        break
+                #If we still have a plan
+                if self.plan_1:
+                    #publish the next waypoint
+                    next_waypoint = self.plan_1[0]
                     self.publish_ctrl_msg(next_waypoint)
+                elif distance_to_target < self.capture_radius:
+                    #If we are near the final target
+                    self.system_state = 'aligning'
+                    self.system_state_pub.publish('aligning')
+                else:
+                    print("No plan available!!")
+            else:
+                print("The plan is nonetype on entry")
                     
         elif self.system_state == 'wpt2':
+            self.wpt2.initial_position = self.current_position
+            self.grid.update_grid(self.obst_r, self.wall_r)
+            self.plan2_by_idx, self.plan_2 = self.wpt2.get_path(True)
+            #Observe the total distance to the actual target
+            distance_to_target = (
+                    (self.current_position[0] - self.wpt2.goal.point[0])**2 + (self.current_position[1] - self.wpt1.goal.point[1])**2)**0.5
+            #If the plan is not nonetype
             if self.plan_2:
-                next_waypoint = self.plan_2[0]
-                distance_to_waypoint = (
-                    (self.current_position[0] - next_waypoint[0])**2 + (self.current_position[1] - next_waypoint[1])**2)**0.5
-                if distance_to_waypoint < self.capture_radius:
-                    self.plan_2.pop(0)
-                    if self.plan_2:
+                #remove all the points within the capture radius
+                print(f"Plan: {self.plan_2}")
+                while True:
+                    print("Popping elements")
+                    if self.plan_1:
                         next_waypoint = self.plan_2[0]
-                        self.publish_ctrl_msg(next_waypoint)
+                        distance_to_waypoint = (
+                            (self.current_position[0] - next_waypoint[0])**2 + (self.current_position[1] - next_waypoint[1])**2)**0.5
+                        if distance_to_waypoint < self.capture_radius:
+                            self.plan_2.pop(0)
+                        else:
+                            break
                     else:
-                        self.system_state = 'unpacking_aed'
-                        self.system_state_pub.publish('unpacking_aed')
-                else:
+                        print("Broke out")
+                        break
+                #If we still have a plan
+                if self.plan_2:
+                    #publish the next waypoint
+                    next_waypoint = self.plan_2[0]
                     self.publish_ctrl_msg(next_waypoint)
+                elif distance_to_target < self.capture_radius:
+                    #If we are near the final target
+                    self.system_state = 'unpacking_aed'
+                    self.system_state_pub.publish('unpacking_aed')
+                else:
+                    print("No plan available!!")
+            else:
+                print("The plan is nonetype on entry")
 
     def obstacles_callback(self, msg):
         # Parse the obstacle coordinates from the message
@@ -303,7 +354,7 @@ class WaypointController:
         self.grid.update_grid(self.obst_r, self.wall_r)
         if self.system_state == 'wpt1':
             print("In obstacle callback 2")
-            _, self.plan_1 = self.wpt1.get_path()
+            self.plan1_by_idx, self.plan_1
             if self.plan_1:
                 next_waypoint = self.plan_1[0]
                 self.publish_ctrl_msg(next_waypoint)
@@ -318,7 +369,7 @@ class WaypointController:
         self.system_state = msg.data
         if self.system_state == 'wpt1':
             print("In system state callback")
-            _, self.plan_1 = self.wpt1.get_path()
+            self.plan1_by_idx, self.plan_1
             if self.plan_1:
                 next_waypoint = self.plan_1[0]
                 self.publish_ctrl_msg(next_waypoint)
@@ -337,10 +388,11 @@ class WaypointController:
         cx, cy = self.current_position
         print(f"current wpt: {cx}x{cy}")
         print(f"next wpt: {x}x{y}")
-        ortn = math.atan2(y-cy,x-cx)*180/math.pi
-        print(f"Angle: {ortn}")
-        ortn_nsew = (90-ortn)%360
+        ortn = (math.atan2((y-cy),(x-cx))*180/math.pi)%360
+        self.last_orientation = ortn
+        print(f"Cartesian angle: {ortn}")
         ctrl_msg = f"$CTRL, {hdg}, {ortn}, {vel},*"
+        print(f"Publishing: {ctrl_msg}")
         self.ctrl_pub.publish(ctrl_msg)
 
 

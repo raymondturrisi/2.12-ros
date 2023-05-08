@@ -17,6 +17,8 @@ l = 2.591
 vehicle_start = [3.2, 1.8]
 aed = [3.12, 0]
 mannequin = [0.24, 2.08]
+obstacles_x = []
+obstacles_y = []
 
 def pose_display():
     fig, ax = plt.subplots()
@@ -51,6 +53,8 @@ def pose_display():
         ax.plot(vehicle_start[0],vehicle_start[1], 'mo')
         ax.text(vehicle_start[0],vehicle_start[1], f"Vehicle starting position", style='italic')
 
+        ax.plot(obstacles_x,obstacles_y, 'go',MarkerSize=10)
+
         #AED Stand
         ax.plot(aed[0],aed[1], 'mo')
         ax.text(aed[0],aed[1], f"AED", style='italic')
@@ -63,7 +67,6 @@ def pose_display():
         plt.show(block=False)
         time.sleep(0.03)
         ax.cla()
-        
 
         #rospy.spin()
 
@@ -71,12 +74,19 @@ def pose_callback(msg):
     global current_pose
     current_pose = msg
 
+def obstacles_callback(msg):
+    global obstacles_x, obstacles_y
+    dat = msg.data.split(',')
+    obstacles_x.append(float(dat[0]))
+    obstacles_y.append(float(dat[1]))
+
 def main():
     global pose_pub
 
     rospy.init_node('uwb_display', anonymous=True)
 
     rospy.Subscriber("/uwb_pose", PoseStamped, pose_callback)
+    rospy.Subscriber("/mr/obstacles", String, obstacles_callback)
 
     pose_display()
 

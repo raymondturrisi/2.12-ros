@@ -12,11 +12,12 @@ from scipy.ndimage.filters import convolve
 import matplotlib.pyplot as plt
 
 class Grid:
-    def __init__(self, length_m, width_m, step_size_m):
-        n_idcs_length = int(length_m//step_size_m)
-        n_idcs_width = int(width_m//step_size_m)
-        self.length_m = length_m
-        self.width_m = width_m
+    def __init__(self, length_m, width_m, padding_m, step_size_m):
+        n_idcs_length = int((length_m+padding_m)//step_size_m)
+        n_idcs_width = int((width_m+padding_m)//step_size_m)
+        self.length_m = length_m+padding_m
+        self.width_m = width_m+padding_m
+        self.padding_m = padding_m
         self.length_idcs = n_idcs_length
         self.width_idcs = n_idcs_width
         self.step_size = step_size_m
@@ -40,13 +41,13 @@ class Grid:
             If we have a step size of 0.1, a width of 3 m, we'll have 30 steps
             At 1.5, we'll want around the 14th index
         """
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Requested point out of bounds! <{x_c}, {y_c}>")
             return False, False
-        return int(x_c//self.step_size), int(y_c//self.step_size)
+        return int((self.padding_m/2+x_c)//self.step_size), int((self.padding_m/2+y_c)//self.step_size)
     
     def get_point(self, x_c, y_c):
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Requested point out of bounds! <{x_c}, {y_c}>")
             return False
         x_d, y_d = self.get_idcs(x_c, y_c)
@@ -55,14 +56,14 @@ class Grid:
     def get_coords(self, x_d, y_d):
         if (x_d <= 0 or x_d > self.width_idcs) or (y_d <= 0 or y_d > self.length_idcs):
             print(f"Requested point out of bounds! <{x_d}, {y_d}>")
-            return False
-        return x_d*self.step_size, y_d*self.step_size 
+            return False, False
+        return (self.padding_m/2+x_d*self.step_size), (self.padding_m/2+y_d*self.step_size )
 
     def insert_obstacle(self, x_c, y_c): 
         """
             Insert an obstacle at some x,y point
         """
-        if (x_c <= 0 or x_c > self.width_m) or (y_c <= 0 or y_c > self.length_m):
+        if (x_c < -self.padding_m/2 or x_c > (self.width_m+self.padding_m/2)) or (y_c < -self.padding_m/2 or y_c > (self.length_m+self.padding_m/2)):
             print(f"Obstacle out of bounds! <{x_c}, {y_c}>")
             return False
         x_d, y_d = self.get_idcs(x_c, y_c)
@@ -119,8 +120,8 @@ class Grid:
         x_ticks = np.linspace(0,self.width_idcs,n_ticks)
         y_ticks = np.linspace(0,self.length_idcs,n_ticks)
 
-        x_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(0,self.width_m, n_ticks)]
-        y_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(0,self.length_m, n_ticks)]
+        x_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(-self.padding_m/2,self.width_m+self.padding_m/2, n_ticks)]
+        y_tick_labels = [f"{tick:0.2f}" for tick in np.linspace(-self.padding_m/2,self.length_m+self.padding_m/2, n_ticks)]
 
         plt.xticks(x_ticks, x_tick_labels)
         plt.yticks(y_ticks, y_tick_labels)
@@ -208,7 +209,8 @@ if __name__ == "__main__":
     initial_position = [3.2, 1.8]
     goal_pt = [3.2,0.05]
     wpt = Waypoint(goal_pt, 0, 0.1)
-    grid = Grid(arena_length, arena_width, step_size)
+    padding = 1
+    grid = Grid(arena_length, arena_width, padding, step_size)
     grid.insert_obstacle(2,2)
     grid.insert_obstacle(1,2)
     for i in np.linspace(0.4, 3.2, 5):

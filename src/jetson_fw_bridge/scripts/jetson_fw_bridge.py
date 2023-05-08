@@ -5,6 +5,8 @@ from std_msgs.msg import String
 from geometry_msgs.msg import PoseStamped
 import serial
 
+global last_fw_msg
+
 class ArduinoSerial(object):
     def __init__(self, port, baudrate):
         self.port = port
@@ -27,10 +29,12 @@ class ArduinoSerial(object):
             self.serial.write((message + "\r\n").encode('utf-8'))
 
     def read_messages(self):
+        global last_fw_msg
         if self.serial is not None:
             while not rospy.is_shutdown():
                 try:
                     message = self.serial.readline().decode("utf-8").strip()
+                    last_fw_msg = message
                     if message:
                         rospy.loginfo("Received message from Arduino: %s", message)
                 except Exception as e:
@@ -41,12 +45,13 @@ class ROSArduinoBridge(object):
         self.serial = None
         self.ctrl_subscriber = None
         self.lift_subscriber = None
-
+        self.state_publisher = None
     def run(self):
         rospy.init_node('jetson_fw_bridge')
         self.connect_to_arduino()
         self.ctrl_subscriber = rospy.Subscriber("/to_fw/ctrl", String, self.ctrl_callback)
         self.lift_subscriber = rospy.Subscriber("/to_fw/lift", String, self.lift_callback)
+        self.state_publisher = rospy.Publisher("/mr/state/heading", String, self.post_heading_callback)
         self.serial.read_messages()
 
     def connect_to_arduino(self):
@@ -66,6 +71,12 @@ class ROSArduinoBridge(object):
     def lift_callback(self, msg):
         # Relay lift message to Arduino
         self.serial.send_message(msg.data)
+
+    def post_heading_callback(self, msg):
+        global last_fw_msg
+        # Relay lift message to Arduino
+        heading = last_fw_msg.split(',')[1]
+        self.state_publisher.publish(heading)
 
 if __name__ == "__main__":
     bridge = ROSArduinoBridge()
