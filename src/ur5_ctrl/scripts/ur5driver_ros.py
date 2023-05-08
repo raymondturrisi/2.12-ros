@@ -23,7 +23,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
 
     pose = rtde_r.getActualTCPPose()
     startpose=pose[:]
-    startpose[2]+=0.1
+    startpose[2]+=0.05
     rtde_c.moveL(startpose, 0.5,0.5, False)
 
     path = path_gen(startpose)
@@ -45,7 +45,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         rate.sleep() #decide what to do here
         #time.sleep(0.1)
     #time.sleep(2)
-    rtde_c.moveL(pose, 0.5,0.5, True)
+    rtde_c.moveL(startpose, 0.5,0.5, True)
     time.sleep(2)
     rtde_c.stopL(0.5, True)
     return 0
@@ -150,7 +150,7 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     deltac=c1-startc
     K=0.1/(deltac**2+deltar**2)**0.5
     theta=math.atan2(deltar,deltac)
-    theta=0
+    #theta=0
     deltay=-K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
     deltax=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
     print('K',K)
