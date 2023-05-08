@@ -18,7 +18,7 @@ void setup()
     // wirelessSetup();
     /* Initialise the sensor */
 
-    liftMotor.attach(13);
+    liftMotor.attach(13, 6);
 
     if (!bno.begin())
     {
