@@ -179,12 +179,12 @@ void loop()
     // Serial.println(millis() - millisLastDataUpdate);
     if (millis() - millisLastLiftUpdate > 1000)
     {
-        liftMotor.write(0);
+        liftMotor.write(90);
         // Serial.println("Zero lift");
     }
     else
     {
-        liftMotor.write(desriedLift);
+        liftMotor.write(map(desriedLift, -100, 100, 0, 180));
         // Serial.println("Setting lift");
     }
     if (millis() - millisLastDataUpdate > 1000)
