@@ -1,0 +1,4 @@
+<launch> 
+    <include file="$(find jetson_fw_bridge)/launch/jetson_fw_bridge.launch">
+    <include file="$(find realsense_d435_driver)/launch/jetson_realsense.launch">
+</launch> 

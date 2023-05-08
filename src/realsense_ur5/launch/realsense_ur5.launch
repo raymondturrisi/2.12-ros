@@ -1,4 +1,5 @@
 <launch>
     <node pkg="realsense_ur5" type="realsense_ur5.py" name="realsense_ur5" output="screen">
     </node>
+    <node name="image_transport_color" pkg="image_transport" type="republish" respawn="true" output="screen" args="raw in:=/realsense_ur5/color/image_raw compressed out:=/realsense_ur5/color/image_comp"/>
 </launch>

@@ -8,7 +8,9 @@ from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int32MultiArray
 import math
 import time
-
+from matplotlib import pyplot as plt
+import numpy as np
+import time
 #from geometry_msgs.msg import Pose, PoseStamped
 
 
@@ -29,12 +31,21 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     path = path_gen(startpose)
     rtde_c.moveL(path, True)
     rate = rospy.Rate(10)
+
+    force_array = []
+    timer = []
+    start_time = time.time()
+
     for i in range(60):
         #print(f"Magnitude of force at loop {i} is {np.linalg.norm(rtde_r.getActualTCPForce())}")
         #print(rtde_r.getActualTCPForce())
         #
         workpos = rtde_r.getActualTCPPose()
-        force= rtde_r.getActualTCPForce()        
+        force = rtde_r.getActualTCPForce()    
+
+        force_array += force[2],
+        timer += [time.time() - start_time]
+        
         force_message = Float32MultiArray()
         pos_message = Float32MultiArray()
         force_message.data=force
@@ -45,9 +56,13 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         rate.sleep() #decide what to do here
         #time.sleep(0.1)
     #time.sleep(2)
-    rtde_c.moveL(startpose, 0.5,0.5, True)
+   
+    rtde_c.moveL(pose, 0.5,0.5, True)
     time.sleep(2)
     rtde_c.stopL(0.5, True)
+
+    plt.plot(force_array, timer)
+
     return 0
 # Move to initial joint position with a regular moveJ
 #rtde_c.moveJ(rad_angle(joint_q), 1.50)

@@ -2,5 +2,4 @@
     <include file="$(find ros_tcp_endpoint)/launch/endpoint.launch">
     <include file="$(find uwb_positioning)/launch/uwb_positioning.launch">
     <include file="$(find waypoint_bhv)/launch/waypoint_bhv.launch">
-    <include file="$(find ur5_ctrl)/launch/ur5_ctrl.launch">
 </launch> 
