@@ -79,15 +79,15 @@ def path_gen(coordinate):
 
 # Define the ROS callback function for receiving Pose messages
 def avatar_callback(string_data):
-    int_values = [int(val) for val in string_data.split(',')]
-
-    # Create an Int32MultiArray message object
-    int_array_msg = Int32MultiArray()
-
-    # Fill in the values of the Int32MultiArray message
-    int_array_msg.data = int_values
-
-    return urmessage_callback(int_array_msg)
+    if string_data.data=='estop':
+        rtde_c.stopL(0.5, True)
+    else:    
+        int_values = [int(val) for val in string_data.data.split(',')]
+        # Create an Int32MultiArray message object
+        int_array_msg = Int32MultiArray()
+        # Fill in the values of the Int32MultiArray message
+        int_array_msg.data = int_values
+        return urmessage_callback(int_array_msg)
 
 
 def urmessage_callback(data):
