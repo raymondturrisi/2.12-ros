@@ -48,7 +48,7 @@ char liftKeyword[] = "$LFT";     //"$CTRL speed"
 long millisLastDataUpdate = millis();
 long millisLastLiftUpdate = millis();
 float currentHeading;
-float orientationGain = 3 / 180.0;
+float orientationGain = 10 / 180.0;
 float desiredMovementHeading = 0;
 float desiredOrientation = 0;
 float desiredSpeed = 0;
@@ -166,7 +166,11 @@ void loop()
     /// Process assigning motor values.
     // Get compass value.
     // currentHeading = something somthing compass.get();
-    currentHeading = -event.magnetic.x;
+    currentHeading = -event.magnetic.x + 360;
+    if (currentHeading >= 360)
+    {
+        currentHeading -= 360;
+    }
 
     Serial.print("$STATE,");
     Serial.print(currentHeading);
@@ -191,6 +195,10 @@ void loop()
     else
     { // Process the motors.
         // Find orientation heading error
+        // Serial.print("Desired: ");
+        // Serial.print(desiredOrientation);
+        // Serial.print("| Current: ");
+        // Serial.println(currentHeading);
         float leftHandError = desiredOrientation - currentHeading;
         if (desiredOrientation < currentHeading)
         {
