@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="realsense_ur5" type="realsense_ur5.py" name="realsense_ur5" output="screen">
+    </node>
+</launch>

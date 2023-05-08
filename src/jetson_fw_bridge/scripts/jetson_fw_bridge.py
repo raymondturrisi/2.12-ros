@@ -2,73 +2,76 @@
 
 import rospy
 from std_msgs.msg import String
+from geometry_msgs.msg import PoseStamped
 import serial
-import sys
-import threading
 
-# Callback function to handle incoming messages
-#TODO: Need to add multiple message types which is getting relayed TO the arduino
-def nmea_callback(msg):
-    global nmea_string
-    nmea_string = msg.data
-    rospy.loginfo("Received NMEA string: %s", nmea_string)
+class ArduinoSerial(object):
+    def __init__(self, port, baudrate):
+        self.port = port
+        self.baudrate = baudrate
+        self.serial = None
 
-# Function to read messages from the Arduino
-#TODO: Parse arduino messages and publish them to the correct topics
-def read_from_arduino(arduino_serial):
-    while not rospy.is_shutdown():
+    def connect(self):
         try:
-            msg = arduino_serial.readline().decode("utf-8").strip()
-            if msg:
-                rospy.loginfo("Received message from Arduino: %s", msg)
+            self.serial = serial.Serial(self.port, self.baudrate, timeout=1)
+            rospy.loginfo("Connected to Arduino on %s at %d baudrate", self.port, self.baudrate)
         except Exception as e:
-            rospy.logerr("Failed to read from Arduino: %s", str(e))
+            rospy.logerr("Failed to connect to Arduino: %s", str(e))
 
-# Establish a connection with the Arduino via USB
-def connect_arduino(port, baudrate):
-    try:
-        arduino_connection = serial.Serial(port, baudrate, timeout=1)
-        rospy.loginfo("Connected to Arduino on %s at %d baudrate", port, baudrate)
-        return arduino_connection
-    except Exception as e:
-        rospy.logerr("Failed to connect to Arduino: %s", str(e))
-        return None
+    def disconnect(self):
+        if self.serial is not None:
+            self.serial.close()
+
+    def send_message(self, message):
+        if self.serial is not None:
+            self.serial.write((message + "\r\n").encode('utf-8'))
+
+    def read_messages(self):
+        if self.serial is not None:
+            while not rospy.is_shutdown():
+                try:
+                    message = self.serial.readline().decode("utf-8").strip()
+                    if message:
+                        rospy.loginfo("Received message from Arduino: %s", message)
+                except Exception as e:
+                    rospy.logerr("Failed to read from Arduino: %s", str(e))
+
+class ROSArduinoBridge(object):
+    def __init__(self):
+        self.serial = None
+        self.ctrl_subscriber = None
+        self.lift_subscriber = None
+
+    def run(self):
+        rospy.init_node('jetson_fw_bridge')
+        self.connect_to_arduino()
+        self.ctrl_subscriber = rospy.Subscriber("/to_fw/ctrl", String, self.ctrl_callback)
+        self.lift_subscriber = rospy.Subscriber("/to_fw/lift", String, self.lift_callback)
+        self.serial.read_messages()
+
+    def connect_to_arduino(self):
+        port = rospy.get_param("~serial_port", "/dev/ttyACM0")
+        baudrate = rospy.get_param("~baudrate", 115200)
+        self.serial = ArduinoSerial(port, baudrate)
+        self.serial.connect()
+
+    def disconnect_from_arduino(self):
+        if self.serial is not None:
+            self.serial.disconnect()
+
+    def ctrl_callback(self, msg):
+        # Relay control message to Arduino
+        self.serial.send_message(msg.data)
+
+    def lift_callback(self, msg):
+        # Relay lift message to Arduino
+        self.serial.send_message(msg.data)
 
 if __name__ == "__main__":
-    # Initialize the ROS node
-    rospy.init_node('jetson_fw_bridge')
-
-    # Get ROS parameters for serial port and baudrate
-    serial_port = rospy.get_param("~serial_port", "/dev/ttyACM0")
-    baudrate = rospy.get_param("~baudrate", 9600)
-
-    # Connect to the Arduino
-    arduino_serial = connect_arduino(serial_port, baudrate)
-    if arduino_serial is None:
-        rospy.logerr("Failed to connect to Arduino, shutting down")
-        sys.exit(1)
-
-    # Subscribe to the NMEA string topic
-    nmea_subscriber = rospy.Subscriber("nmea_topic", String, nmea_callback)
-
-    # Set up a rate control for the main loop
-    rate = rospy.Rate(10)  # 10 Hz
-
-    nmea_string = None
-
-    # Start a separate thread to read messages from the Arduino
-    arduino_read_thread = threading.Thread(target=read_from_arduino, args=(arduino_serial,))
-    arduino_read_thread.start()
-
-    # Main loop
-    while not rospy.is_shutdown():
-        if nmea_string:
-            # Send the NMEA string to the Arduino via the serial connection
-            arduino_serial.write((nmea_string + "\r\n").encode('utf-8'))
-            nmea_string = None
-
-        # Sleep to maintain the desired rate
-        rate.sleep()
-
-    # Close the serial connection when shutting down
-    arduino_serial.close()
+    bridge = ROSArduinoBridge()
+    try:
+        bridge.run()
+    except rospy.ROSInterruptException:
+        pass
+    finally:
+        bridge.disconnect_from_arduino()
