@@ -33,6 +33,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     rate = rospy.Rate(10)
 
     force_array = []
+    pos_z_array = []
     timer = []
     start_time = time.time()
 
@@ -61,8 +62,9 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     time.sleep(2)
     rtde_c.stopL(0.5, True)
 
-    plt.plot(force_array, timer)
+    plt.plot(timer, force_array)
     plt.show()
+    
 
     return 0
 # Move to initial joint position with a regular moveJ
@@ -162,15 +164,16 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     x2=triangleloc[0]
     y2=triangleloc[1]
     '''
-    deltar=r1-startr
-    deltac=c1-startc
+    deltar=startr-r1
+    deltac=-(startc-c1)
     K=0.1/(deltac**2+deltar**2)**0.5
-    theta=math.atan2(deltar,deltac)
+    theta=math.atan2(deltac,deltar)
     #theta=0
-    deltay=-K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
-    deltax=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
+    deltax=K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
+    deltay=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
     print('K',K)
     print('theta',theta)
+    print(deltar, deltac)
     print(deltax,deltay) 
     finalpose=pose[:]
     finalpose[0]+=deltax
