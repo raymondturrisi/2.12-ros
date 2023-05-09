@@ -155,14 +155,14 @@ def navigation_callback(string_data):
     triangleloc = string_data.data
 
 def navigation(rtde_r,rtde_c,ur5_pub_navigation):
-    while (triangleloc[2]>0.001):
+    while (triangleloc[2]>0.2):
 	    startr=triangleloc[0]
 	    startc=triangleloc[1]
 	    
 	    print(triangleloc)
 	    pose=rtde_r.getActualTCPPose()
 	    pose1=pose[:]
-	    pose1[0]+=triangleloc[2]/5
+	    pose1[0]+=triangleloc[2]/4
 	    rtde_c.moveL(pose1, 0.5,0.5, False)
 	    time.sleep(3)
 	    r1=triangleloc[0]
@@ -191,10 +191,11 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
 	    finalpose=pose[:]
 	    finalpose[0]+=deltax
 	    finalpose[1]+=deltay
-	    finalpose[2]-=0.05
+	    finalpose[2]-=0.10
 	    rtde_c.moveL(finalpose, 0.5,0.5, False)
 	    time.sleep(3)
 	    print('done')
+	    
     currpos=rtde_r.getActualTCPPose()
     dx=0.06
     dy=0.04
