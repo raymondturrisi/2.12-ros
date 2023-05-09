@@ -62,6 +62,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     rtde_c.stopL(0.5, True)
 
     plt.plot(force_array, timer)
+    plt.show()
 
     return 0
 # Move to initial joint position with a regular moveJ
