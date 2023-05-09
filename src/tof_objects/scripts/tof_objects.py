@@ -32,7 +32,7 @@ def obj_positioning(pose_pub):
     while not rospy.is_shutdown():
         obstacle_detection() # read ToF data to find obstacle x, y coord
         x, y, l = obstacle
-        len_check = (l > .2) and (l < max_distance_to_sense)
+        len_check = (l > .1) and (l < max_distance_to_sense)
         bound_check = (x >= 0) and (x < 3.5) and (y >= 0) and (y < 2.5)
         aed_check = not((x >=3.1) and (x < 3.5) and (y >= 0) and (y < .4))
 
