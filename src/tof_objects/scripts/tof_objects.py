@@ -39,15 +39,17 @@ def obj_positioning(pose_pub):
         if len_check and bound_check and aed_check:
             pose_pub.publish(f"{x:0.1f},{y:0.1f}")
         #rospy.spin()
+def deg_to_rad(deg):
+    return deg*3.1415/180
 
 def heading_callback(msg):
     global heading
-    heading = float(msg.data)
+    heading = deg_to_rad(float(msg.data))
 
 def position_callback(msg):
     global R 
     R = msg
-
+    
 def obstacle_detection():
     global obstacle
     line = data.recv(1024).decode('UTF-8')
@@ -58,7 +60,7 @@ def obstacle_detection():
         dist = raw_data[1].split(':')[1]
         
         l = float(dist)/1000
-        phi = float(angle)
+        phi = deg_to_rad(float(angle))
         #print(f"Converted: {l}x{phi}")
         # Maps distance and position to x, y coord of obstacle
 
