@@ -82,8 +82,8 @@ def path_gen(coordinate):
         newpose=coordinate[:]
         thing = math.radians(angles[i])
         newpose[2] = coordinate[2] +  L/2*math.sin(thing) - L/2
-        newpose.append(0.8) #velocity too fast
-        newpose.append(1)
+        newpose.append(1.5) #velocity too fast
+        newpose.append(2)
         # newpose.append(abs(-1*L*omega*math.cos(thing))) #velocity
         # newpose.append(abs(L*omega*omega*math.sin(thing) + 0.1)) #accel
         newpose.append(b[i])
