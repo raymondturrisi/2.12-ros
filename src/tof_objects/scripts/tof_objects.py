@@ -13,8 +13,9 @@ current_heading = 0.0
 UDP_IP = "192.168.1.6"
 UDP_PORT = 9002
 
-d1 = 5.0/1000
-d2 = 4.0/1000
+dx1, dy1, ds = .04, -.05, .01 # meters
+max_distance_to_sense = 1 # meter
+
 # Set up UDP socket
 print("TOF: Connecting to the socket")
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,10 +31,13 @@ def obj_positioning(pose_pub):
     global obstacle
     while not rospy.is_shutdown():
         obstacle_detection() # read ToF data to find obstacle x, y coord
-        x, y = obstacle
-        obstacle_str = f"{x:0.1f},{y:0.1f}"
-        pose_pub.publish(obstacle_str)
-        
+        x, y, l = obstacle
+        len_check = (l > .2) and (l < max_distance_to_sense)
+        bound_check = (x >= 0) and (x < 3.5) and (y >= 0) and (y < 2.5)
+        aed_check = not((x >=3.1) and (x < 3.5) and (y >= 0) and (y < .4))
+
+        if len_check and bound_check and aed_check:
+            pose_pub.publish(f"{x:0.1f},{y:0.1f}")
         #rospy.spin()
 
 def heading_callback(msg):
@@ -57,10 +61,19 @@ def obstacle_detection():
         phi = float(angle)
         #print(f"Converted: {l}x{phi}")
         # Maps distance and position to x, y coord of obstacle
-        x_obs = R.pose.position.x + d1*cmath.cos(heading) + (d2+l)*cmath.cos(heading+phi)
-        y_obs = R.pose.position.y + d1*cmath.sin(heading) + (d2+l)*cmath.sin(heading+phi)
-        
-        obstacle = [x_obs.real, y_obs.real]
+
+        # Coord difference between UWB position, and servo_center
+        x_uwb_servo = dx1*cmath.cos(heading) + dy1*cmath.sin(heading)
+        y_uwd_servo = dx1*cmath.sin(heading) + dy1*cmath.cos(heading)
+
+        # Coord difference between servo center and obstacle
+        x_servo_obs = (ds+l)*cmath.cos(heading+phi)
+        y_servo_obs = (ds+l)*cmath.sin(heading+phi)
+
+        # Calculates obstacle position given transformations
+        x_obs = R.pose.position.x + x_uwb_servo + x_servo_obs
+        y_obs = R.pose.position.y + y_uwd_servo + y_servo_obs
+        obstacle = [x_obs.real, y_obs.real, l]
     except:
         print("TOF: Err")
         pass
@@ -75,10 +88,9 @@ def main():
     rospy.Subscriber("/uwb_pose", PoseStamped, position_callback,  queue_size=10)
 
     pose_pub = rospy.Publisher("/mr/obstacles", String, queue_size=10)
-
     obj_positioning(pose_pub)
 
     #rospy.spin()
 
 if __name__ == '__main__':
-    main()
+    main() 
