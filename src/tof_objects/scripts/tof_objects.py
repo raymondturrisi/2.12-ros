@@ -23,7 +23,7 @@ sock.bind((UDP_IP, UDP_PORT))
 sock.listen(1)
 data, addr = sock.accept()
 print("TOF: Connected")
-obstacle = [-5,-5]
+obstacle = [-1, -1, 0]
 heading = 0
 R = PoseStamped()
 
