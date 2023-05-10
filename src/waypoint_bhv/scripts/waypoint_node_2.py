@@ -4,13 +4,11 @@ import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
-
 import math 
-
-import time
 import numpy as np
 from scipy.ndimage.filters import convolve
 import matplotlib.pyplot as plt
+import time 
 
 class Grid:
     def __init__(self, length_m, width_m, padding_m, step_size_m):
@@ -130,46 +128,27 @@ class Grid:
         plt.yticks(y_ticks, y_tick_labels)
 
         plt.colorbar()
-        plt.show()
+        plt.savefig(f"current_state_{time.perf_counter()}.png")
         return True
-
-class Waypoint:
-    def __init__(self, point, approach_angle, lead_dist):
-        self.point = point 
-        self.approach_angle = approach_angle
-        x_lead = point[0] - lead_dist*np.cos(approach_angle*np.pi/180) 
-        y_lead = point[1] - lead_dist*np.sin(approach_angle*np.pi/180) 
-        self.lead_point = [x_lead, y_lead]
-
 
 class WaypointBHV:
     """ 
         Receive high level waypoints, compute secondary waypoints
     """
-    def __init__(self, initial_position, goal: Waypoint, grid): 
-        self.initial_position = initial_position
-        self.goal = goal
+    def __init__(self, goal, grid): 
+        self.goal_xy = [goal[0], goal[1]]
+        self.goal_angle = goal[2]
+        self.end_flag = goal[4]
         self.grid = grid 
 
-    def get_path(self, lead=True):
-        if lead:
-            print(f"IP: {self.initial_position} -> {self.goal.lead_point}")
-            path = self.a_star_search(self.initial_position, self.goal.lead_point)
-            print(f"Lead point {self.goal.lead_point}")
-            if path == None:
-                print("No path found!")
-                return path, path
-            else:
-                goal_by_idx = self.grid.get_idcs(*self.goal.point)
-                path.append([goal_by_idx[0], goal_by_idx[1]])
-                return path, [self.grid.get_coords(*pair) for pair in path]
+    def get_path(self, current_position):
+        path = self.a_star_search(current_position, self.goal_xy)
+        if path == None:
+            print("No path found!")
+            return path, path
         else:
-            path = self.a_star_search(self.initial_position, self.goal.point)
-            if path == None:
-                print("No path found!")
-                return path, path
-            else:
-                return path, [self.grid.get_coords(*pair) for pair in path]
+            path_by_idx = [self.grid.get_coords(*pair) for pair in path]
+            return path, path_by_idx
 
 
     def a_star_search(self, start_m, end_m):
@@ -210,46 +189,40 @@ class WaypointController:
         rospy.init_node('waypoint_controller')
 
         # Set the parameters
-        self.length_m = 2.5
-        self.width_m = 3.75
-        self.step_size_m = 0.05
-        self.obst_r = 0.2
-        self.wall_r = 0.00
-        self.capture_radius = 0.02
-        self.speed = 0.1
-        self.compass_setup_offset = 0
+        self.length_m = 2.5 #meters
+        self.width_m = 3.75 #meters
+        self.step_size_m = 0.05 #meters
+        self.obst_r = 0.2 #meters
+        self.wall_r = 0.00 #meters
+        self.capture_radius = 0.2 #meters
+        self.speed = 0.1 #meters/s
+        
         # Initialize the grid and waypoint behaviors
-        self.padding = 1
+        self.padding = 1 #meter
         self.grid = Grid(self.length_m, self.width_m, self.padding, self.step_size_m)
         self.grid.update_grid(self.obst_r, self.wall_r)
         self.last_heading = 0
         self.last_orientation = 0
 
-        initial_1 = [3.2, 1.4] #arbitrary
-        self.pos_1_init = False
-        goal_1 = [2.7, 0.0]
-        goal_1_lead_angle = 0
-        goal_1_lead_length = 0.2
+        #waypoint as (x,y,end_heading,start_flag,end_flag)
+        wpt1 = (2.7, 0.41, 0, "wpt_1", "wpt_2")
+        wpt2 = (3.18, 0.41, 0, "wpt_2", "aligning_aed")
+        wpt3 = (0.62, 2.32, 180, "wpt_3", "unpacking_aed")
 
-        initial_2 = [2.7, 0.0] #arbitrary
-        self.pos_2_init = False
-        goal_2 = [3.2, 0]
-        goal_2_lead_angle = 180
-        goal_2_lead_length = 0.5
+        wptbhv_1 = WaypointBHV(wpt1, self.grid)
+        wptbhv_2 = WaypointBHV(wpt2, self.grid)
+        wptbhv_3 = WaypointBHV(wpt3, self.grid)
 
-        initial_3 = [3, 0.1] #arbitrary
-        self.pos_3_init = False
-        goal_3 = [0.62, 2.32]
-        goal_3_lead_angle = 180
-        goal_3_lead_length = 0.5
+        self.waypoint_bhvs = {wpt1[3]:wptbhv_1,
+                         wpt2[3]:wptbhv_2,
+                         wpt3[3]:wptbhv_3}
+        
+        self.pose_init = False 
 
-        self.wpt1 = WaypointBHV(initial_1, Waypoint(goal_1, goal_1_lead_angle, goal_1_lead_length), self.grid)
-        self.wpt2 = WaypointBHV(initial_2, Waypoint(goal_2, goal_2_lead_angle, goal_2_lead_length), self.grid)
-        self.wpt3 = WaypointBHV(initial_3, Waypoint(goal_3, goal_3_lead_angle, goal_3_lead_length), self.grid)
-        self.plan1_by_idx, self.plan_1 = self.wpt1.get_path(False)
-        self.plan2_by_idx, self.plan_2 = self.wpt2.get_path(False)
-        self.plan3_by_idx, self.plan_3 = self.wpt3.get_path(False)
-        self.current_position = initial_1
+        self.current_position = [0,0]
+
+        self.last_replan = 0
+
         # Create the publishers and subscribers
         self.pose_sub = rospy.Subscriber(
             '/uwb_pose', PoseStamped, self.pose_callback)
@@ -261,81 +234,92 @@ class WaypointController:
             '/system_state', String, self.system_state_callback)
         
         self.system_state_pub = rospy.Publisher('/system_state', String, queue_size=10)
+        
         self.ctrl_pub = rospy.Publisher('/to_fw/ctrl', String, queue_size=10)
 
         # Set the initial system state
-        self.system_state = ''
+        self.system_state = 'init'
+        self.replan = True 
         self.grid.update_grid(self.obst_r, self.wall_r)
+        self.last_ctrl_pub_t = 0
+        self.new_state = False
+        self.valid_keys = [key for key in self.waypoint_bhvs.keys()]
+
         # Run the node
         while not rospy.is_shutdown():
-        #rospy.spin()
-            #self.wpt1.grid.show_grid(initial_point=self.current_position,target=self.wpt1.goal.point,path=self.plan1_by_idx)
-            #If we are in the wpt 1 state
-            if self.system_state == 'wpt1':
-                self.wpt1.initial_position = self.current_position
-                self.grid.update_grid(self.obst_r, self.wall_r)
-                self.plan1_by_idx, self.plan_1 = self.wpt1.get_path(True)
-                #Observe the total distance to the actual target
-                distance_to_target = (
-                        (self.current_position[0] - self.wpt1.goal.point[0])**2 + (self.current_position[1] - self.wpt1.goal.point[1])**2)**0.5
-                #If the plan is not nonetype
-                if self.plan_1:
-                    #remove all the points within the capture radius to support smoothing
-                    print(f"Plan: {self.plan_1}")
-                    while True:
-                        print("Popping elements")
-                        if self.plan_1:
-                            next_waypoint = self.plan_1[0]
-                            distance_to_waypoint = (
-                                (self.current_position[0] - next_waypoint[0])**2 + (self.current_position[1] - next_waypoint[1])**2)**0.5
-                            if distance_to_waypoint < self.capture_radius:
-                                self.plan_1.pop(0)
-                            else:
-                                break
-                        else:
-                            break
-                    #If we still have a plan
-                    if self.plan_1:
-                        #publish the next waypoint
-                        if len(self.plan_1) > 4:
-                            #If we have a few points, smooth it by taking the average heading
-                            cx, cy = self.current_position
-                            ortn = (np.mean([math.atan2((self.plan_1[idx][1]-cy),(self.plan_1[idx][0]-cx)) for idx in range(0,5)])*180/np.pi)%360
-                            ctrl_msg = f"$CTRL,0,{ortn},{self.speed},*"
-                            self.publish_ctrl_msg(ctrl_msg)
-                        else:
-                            #If we won't have many, just take the next one
-                            cx, cy = self.current_position
-                            next_wpt = self.plan_1[0]
-                            x,y = next_wpt
-                            ortn = (math.atan2((y-cy),(x-cx))*180/np.pi)%360
-                            ctrl_msg = f"$CTRL,0,{ortn},{self.speed},*"
-                            self.publish_ctrl_msg(ctrl_msg)
-                    
-                    #Evaluate the distance to the target and see if we can change states
-                    if distance_to_target < self.capture_radius:
-                        #If we are near the final target
-                        self.system_state = 'aligning'
-                        self.system_state_pub.publish('aligning')
-                        ctrl_msg = "$CTRL,0,{self.wpt1.goal.approach_angle},0,*"
-                        self.publish_ctrl_msg(ctrl_msg)
-
+            #If we initialized our pose and know where to form plans from
+            if self.pose_init:
+                #Check to see if the system state is associated to one of our behaviors/waypoints
+                if self.system_state in self.valid_keys:
+                    if self.new_state or self.replan:
+                        #If this is the first time we entered this state or we need to replan, we form a plan
+                        self.bhv = self.waypoint_bhvs[self.system_state]
+                        self.bhv.grid.update_grid(self.obst_r, self.wall_r)
+                        self.cplan_by_idx, self.cplan_by_xy = self.bhv.get_path(self.current_position)
+                        self.new_state = False
+                        self.replan = False
+                        self.last_replan = time.perf_counter()
+                        self.grid.show_grid(self.current_position, self.bhv.goal_xy, self.cplan_by_idx)
                     else:
-                        print("No plan available!! {self.plan_1}")
-                else:
-                    print("The plan is nonetype on entry")
+                        #If we are not in a new state, but we are in one of our states, and we do not need to replan
+                        #We simply monitor the plan and pop off captured points - the obstacles topic will tell us if we need to replan
+                        if self.cplan_by_xy != None and len(self.cplan_by_xy) > 0:
+                            if self.dist(self.current_position, self.cplan_by_xy[0]) < self.capture_radius:
+                                print("Captured a point!!!")
+                                #If a point is in the capture radius, then 
+                                self.cplan_by_xy.pop(0)
+                                self.cplan_by_idx.pop(0)  
+                                #post a control message every 0.5 seconds this is for smoothing
+                            if time.perf_counter() > self.last_ctrl_pub_t+0.2:
+                                ctrl_msg = self.get_ctrl_string(self.current_position, self.cplan_by_xy)
+                                self.publish_ctrl_msg(ctrl_msg)
+                                self.last_ctrl_pub_t = time.perf_counter()
+                        else:
+                            print("No plan found")
+
+                    #If we are at the waypoints current target, we raise its end flag and change the system state
+                    #else we propose a new heading and wait
+                    if self.dist(self.current_position, self.bhv.goal_xy) < self.capture_radius:
+                        print(f"Captured goal {self.bhv.goal_xy}")
+                        self.system_state = self.bhv.end_flag
+                        self.new_state = True
+                        self.system_state_pub.publish(self.bhv.end_flag)
+                        ctrl_msg = f"$CTRL,0,{self.bhv.goal_angle},0,*"
+                        self.publish_ctrl_msg(ctrl_msg)
+                        #wait for two seconds before we transition to a new internal state
+                        #if it isn't an internal state it doesn't effect anything
+                        time.sleep(2)
+                    if time.perf_counter() > self.last_replan+2:
+                        self.replan = True
+            else:
+                print("Not localized")
+
+    def dist(self, pos1, pos2):
+        #distance between two points fo
+        return math.sqrt((pos1[0]-pos2[0])**2+(pos1[1]-pos2[1])**2)
+    
+    def get_ctrl_string(self, current_position, target_set):
+        #For a current position and the proposed path, construct a control message
+        cx,cy = current_position
+        ctrl_msg = ""
+        if len(target_set) > 6:
+            ortn = (np.mean([math.atan2((target_set[idx][1]-cy),(target_set[idx][0]-cx)) for idx in range(0,7)])*180/np.pi)%360
+            ctrl_msg = f"$CTRL,0,{ortn},{self.speed},*"
+        else:
+            x,y = target_set[0]
+            ortn = (math.atan2((y-cy),(x-cx))*180/np.pi)%360
+            ctrl_msg = f"$CTRL,0,{ortn},{self.speed},*"
+        return ctrl_msg
 
     def pose_callback(self, msg):
         # Check if the current position is within the capture radius of the next waypoint
         self.current_position = [msg.pose.position.x, msg.pose.position.y]
-        self.plan_1
+        self.pose_init = True
         print(f"Updating point: {self.current_position}")
         
 
     def obstacles_callback(self, msg):
         # Parse the obstacle coordinates from the message
-        print("In obstacle callback")
-
         obstacles = []
         obstacles_str = msg.data.split(';')
         for obstacle_str in obstacles_str:
@@ -345,15 +329,15 @@ class WaypointController:
         # Update the grid and replan the path
         for obstacle in obstacles:
             self.grid.insert_obstacle(obstacle[0], obstacle[1])
-        self.grid.update_grid(self.obst_r, self.wall_r)
+        self.replan = True
 
     def system_state_callback(self, msg):
         # Update the system state
         self.system_state = msg.data
+        self.new_state = True
 
     def publish_ctrl_msg(self, ctrl_msg):
         # Publish the control message
-        print(f"Publishing control message")
         print(f"- {ctrl_msg}")
         self.ctrl_pub.publish(ctrl_msg)
 

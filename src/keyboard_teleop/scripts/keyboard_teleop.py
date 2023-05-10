@@ -37,8 +37,9 @@ Currently, this is to drive the lift
 """
 
 MR_ACTION_KEYS = {
-    'u':1, #up
-    'j':0 #down?
+    'u':50, #up
+    'k':0, #up
+    'j':-50 #down
 }
 
 def get_key():
@@ -108,8 +109,10 @@ if __name__ == "__main__":
 
             elif key in MR_ACTION_KEYS.keys():
                 if key == 'u':
-                    lift_state = 1
+                    lift_state = 50
                 elif key == 'j':
+                    lift_state = -50
+                elif key == 'k':
                     lift_state = 0
 
             elif key in MR_ARROW_KEYS.keys():  # Escape character
@@ -148,7 +151,7 @@ if __name__ == "__main__":
 
                 #Do it again for the lift
                 msg = String()
-                msg.data = f"$LIFT,{lift_state},*"
+                msg.data = f"$LFT,{lift_state},*"
                 lift_pub.publish(msg)
                 rospy.loginfo("Lift Command State: %s", msg.data)
                 print('\r',end='')

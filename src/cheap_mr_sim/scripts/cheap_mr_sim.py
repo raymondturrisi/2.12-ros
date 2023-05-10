@@ -21,7 +21,16 @@ class CheapSimulator:
         # Initialize the publisher for the "/mr/pose" topic
         self.pose_pub = rospy.Publisher("/uwb_pose", PoseStamped, queue_size=10)
         self.rate = rospy.Rate(10) # 10hz
-
+        pose_msg = PoseStamped()
+        pose_msg.header.stamp = rospy.Time.now()
+        pose_msg.header.frame_id = "map"
+        pose_msg.pose.position = Vector3(self.x, self.y, 0.0)
+        pose_msg.pose.orientation = Quaternion(*tf.transformations.quaternion_from_euler(0, 0, self.yaw))
+        print("Publishing pose")
+        self.rate.sleep()
+        self.pose_pub.publish(pose_msg)
+        
+        
     def control_callback(self, msg):
         # Parse the control message and extract the heading, orientation, and speed
         ctrl = msg.data.split(",")

@@ -14,9 +14,9 @@ import matplotlib.cm as cm
 current_pose = PoseStamped()
 
 l = 2.591
-vehicle_start = [3.2, 1.8]
-aed = [3.12, 0]
-mannequin = [0.24, 2.08]
+vehicle_start = [3.49, 2.15]
+aed = [3.2, 0.1]
+mannequin = [0.62, 2.32]
 obstacles_x = []
 obstacles_y = []
 
@@ -42,7 +42,7 @@ def pose_display():
 
         #Plot the vehicle
         ax.plot(x,y,'ro')
-        ax.text(x,y,f"p = ({x},{y})", style='italic')
+        ax.text(x,y,f"p = ({x:0.2f},{y:0.2f})", style='italic')
 
         #Plot the location of the tags
         ax.plot(0,0,'rx')

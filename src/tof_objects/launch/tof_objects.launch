@@ -1,0 +1,6 @@
+<launch>
+
+  <!-- I include this here but do not use it -->
+  <node name="tof_objects" pkg="tof_objects" type="tof_objects.py" output="screen"/>
+
+</launch>

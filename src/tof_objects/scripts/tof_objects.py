@@ -33,9 +33,12 @@ def obj_positioning(pose_pub):
         obstacle_detection() # read ToF data to find obstacle x, y coord
         x, y, l = obstacle
         len_check = (l > .1) and (l < max_distance_to_sense)
-        bound_check = (x >= 0) and (x < 3.5) and (y >= 0) and (y < 2.5)
-        aed_check = not((x >=3.1) and (x < 3.5) and (y >= 0) and (y < .4))
-
+        #bound_check = (x >= 0) and (x < 3.5) and (y >= 0) and (y < 2.5)
+        #aed_check = not((x >=3.1) and (x < 3.5) and (y >= 0) and (y < .4))
+        bound_check = True
+        aed_check = True
+        print(f"{len_check} {bound_check} {aed_check}")
+        print(f"{x} {y} {l}")
         if len_check and bound_check and aed_check:
             pose_pub.publish(f"{x:0.1f},{y:0.1f}")
         #rospy.spin()
@@ -61,6 +64,7 @@ def obstacle_detection():
         
         l = float(dist)/1000
         phi = deg_to_rad(float(angle))
+        phi = 0
         #print(f"Converted: {l}x{phi}")
         # Maps distance and position to x, y coord of obstacle
 
@@ -71,7 +75,7 @@ def obstacle_detection():
         # Coord difference between servo center and obstacle
         x_servo_obs = (ds+l)*cmath.cos(heading+phi)
         y_servo_obs = (ds+l)*cmath.sin(heading+phi)
-
+        print(f"{x_uwb_servo}x{y_uwd_servo} - {heading} degrees")
         # Calculates obstacle position given transformations
         x_obs = R.pose.position.x + x_uwb_servo + x_servo_obs
         y_obs = R.pose.position.y + y_uwd_servo + y_servo_obs
@@ -86,7 +90,7 @@ def main():
 
     rospy.init_node('uwb_positioning_node', anonymous=True)
 
-    rospy.Subscriber("/jetson/state/heading", String, heading_callback, queue_size = 10)
+    rospy.Subscriber("/mr/state/heading", String, heading_callback, queue_size = 10)
     rospy.Subscriber("/uwb_pose", PoseStamped, position_callback,  queue_size=10)
 
     pose_pub = rospy.Publisher("/mr/obstacles", String, queue_size=10)

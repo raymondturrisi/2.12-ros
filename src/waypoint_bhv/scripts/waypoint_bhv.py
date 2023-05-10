@@ -160,14 +160,36 @@ class WaypointBHV:
             else:
                 goal_by_idx = self.grid.get_idcs(*self.goal.point)
                 path.append([goal_by_idx[0], goal_by_idx[1]])
-                return path, [grid.get_coords(*pair) for pair in path]
+                path_by_xy = [grid.get_coords(*pair) for pair in path]
+
+                return path, path_by_xy
         else:
             path = self.a_star_search(self.initial_position, self.goal.point)
             if path == None:
                 print("No path found!")
                 return path, path
             else:
-                return path, [grid.get_coords(*pair) for pair in path]
+                path_by_xy = [grid.get_coords(*pair) for pair in path]
+                return path, path_by_xy
+            
+    def check_continuous(self, nb_set, grid):
+        pass 
+
+    def simplify_path(self, path_by_idx, path_by_xy):
+        nb_updown = [(0,1),(0,-1)]
+        nb_leftright = [(-1,0),(1,0)]
+        nb_cross_lr = [(-1,1),(-1,1)]
+        nb_cross_rl = [(1,1),(-1,-1)]
+        nb_sets = [nb_updown,
+                   nb_leftright,
+                   nb_cross_lr,
+                   nb_cross_rl]
+        for idx, wpt in enumerate(path_by_idx):
+            pass
+        for elem in p:
+            pass
+        for nb_set in nb_sets:
+            pass
 
     def a_star_search(self, start_m, end_m):
         def heuristic(a, b):
@@ -220,6 +242,6 @@ if __name__ == "__main__":
     grid.insert_obstacle(3.5,1)
     grid.update_grid(vehicle_radius, boundary_buffer)
     wpt_bhv = WaypointBHV(initial_position, wpt, grid)
-    path_by_idx, path_by_cord = wpt_bhv.get_path(True)
+    path_by_idx, path_by_cord = wpt_bhv.get_path(False)
     print(f"Path: {[f'<{x:0.2f},{y:0.2f}>' for x,y in path_by_cord]}")
     grid.show_grid(initial_position, wpt.point, path_by_idx)
