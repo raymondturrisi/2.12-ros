@@ -102,6 +102,7 @@ def obstacle_detection():
                 # Confirm variance of obstacles are within a threshold of .02
                 if np.mean(var) < var_threshold:
                     obstacle = np.mean(obs, axis = 0)
+                    obstacles = []
                     publish = True
     except:
         print("TOF: Err")
