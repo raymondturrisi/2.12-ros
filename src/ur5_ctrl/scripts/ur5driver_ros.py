@@ -49,7 +49,9 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         #print(rtde_r.getActualTCPForce())
         #
         workpos = rtde_r.getActualTCPPose()
-        force = rtde_r.getActualTCPForce()    
+        force = rtde_r.getActualTCPForce()  
+        force.append(1)
+        workpos.append(1)  
 
         force_array += force[2],
         timer += [time.time() - start_time]
@@ -144,6 +146,8 @@ def publish_pose():
         force= rtde_r.getActualTCPForce()
         force_message = Float32MultiArray()
         pos_message = Float32MultiArray()
+        force.append(0)
+        workpos.append(0)
         force_message.data=force
         pos_message.data=workpos
         # Publish the PoseStamped message
