@@ -92,6 +92,8 @@ if __name__ == "__main__":
             mode=2
         elif key=='h':
             mode=3
+        elif key=='e':
+            mode=4
         else: 
             mode=0
         if key in stepsize:

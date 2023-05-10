@@ -81,7 +81,7 @@ def path_gen(coordinate):
     b =[0.02]*65
     b[0] = 0
     b[64] = 0
-    angles = [90,120,150,180,210,240,270,240,210,180,150,120]*5
+    angles = [90,120,150,180,210,240,270,240,210,180,150,120]*8
     angles.append(90)
     L = 0.1 #max displacement
     omega = 0.8*2*3.1415 #5 pumps in 5 sec
@@ -122,6 +122,8 @@ def urmessage_callback(data):
         navigation(rtde_r, rtde_c,ur5_pub_navigation)
     elif data.data[0]==3:
         home(rtde_r,rtde_c)
+    elif data.data[0]==4:
+    	rtde_c.stopL(0.5, False)
     else:
         #jog mode 
         currpos=rtde_r.getActualTCPPose()
