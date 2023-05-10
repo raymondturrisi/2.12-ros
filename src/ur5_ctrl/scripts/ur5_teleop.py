@@ -54,7 +54,10 @@ def print_usage():
     print("Instructions: \n\t- Use 'W' and 'S' to joggle up and down\n\
           \t- Use arrow keys to joggle in the plane\n\
           \t- Use '1', '2', '3' to change step size, 3 biggest\n\
-          \t- Or press 'C' to start CPR")
+          \t- press 'H' to home\n\
+          \t- press 'P' to Pick up end effector\n\
+          \t- press 'N' to Navigate\n\
+          \t- press 'C' to start CPR")
     print("Press 'Q' or 'q' to quit")
 
 
@@ -96,6 +99,8 @@ if __name__ == "__main__":
         elif key=='e':
             ur5_estop.publish(String())
             mode=4
+        elif key=='p':
+            mode=5
         else: 
             mode=0
         if key in stepsize:

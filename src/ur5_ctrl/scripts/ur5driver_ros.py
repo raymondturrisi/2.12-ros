@@ -15,11 +15,28 @@ import time
 
 def home(rtde_r,rtde_c):
     pose = rtde_r.getActualTCPPose()
+    pose[0]=-0.49
+    pose[1]=-0.525
+    pose[2]=0.30
     pose[3]=3.14
     pose[4]=0.0
     pose[5]=0.0
     rtde_c.moveL(pose, 0.5,0.5, False)
-    time.sleep(2)
+    time.sleep(0.5)
+
+def pickup(rtde_r,rtde_c):
+    pose = rtde_r.getActualTCPPose()
+    pose[0]=-0.11
+    pose[1]=-0.649
+    pose[2]=0.10
+    pose[3]=3.14
+    pose[4]=0.0
+    pose[5]=0.0
+    rtde_c.moveL(pose, 0.5,0.5, False)
+    speed = [0, 0, -0.050, 0, 0, 0]
+    rtde_c.moveUntilContact(speed)
+    time.sleep(0.5)
+
     
 def rad_angle(arr):
 	c=[i*2*3.1415/360.0 for i in arr]
@@ -49,9 +66,9 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         #print(f"Magnitude of force at loop {i} is {np.linalg.norm(rtde_r.getActualTCPForce())}")
         #print(rtde_r.getActualTCPForce())
         #
-        print('estop',estop)
+        #print('estop',estop)
         if estop==1:
-            print('estop!!!')
+            #print('estop!!!')
             rtde_c.stopL(0.5, False)
             estop=0
             break
@@ -69,7 +86,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         pos_message.data=workpos
         ur5_pub_force.publish(force_message)
         ur5_pub_pos.publish(pos_message)
-        rospy.loginfo('Pubbing message: {}'.format(force_message))
+        rospy.loginfo('Pubbing message: {}'.format(pos_message))
         rate.sleep() #decide what to do here
         #time.sleep(0.1)
     #time.sleep(2)
@@ -77,7 +94,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     rtde_c.moveL(pose, 0.5,0.5, True)
     time.sleep(2)
     rtde_c.stopL(0.5, True)
-    print('estop', estop)
+    #print('estop', estop)
 
     #plt.plot(timer, force_array)
     #plt.show()
@@ -136,6 +153,8 @@ def urmessage_callback(data):
     elif data.data[0]==4:
         print('estop heyyy')
         estop=1
+    elif data.data[0]==5:
+        pickup(rtde_r,rtde_c)
     	
     else:
         #jog mode 
