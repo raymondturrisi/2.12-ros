@@ -80,9 +80,9 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
 #rtde_c.moveJ(rad_angle(joint_q), 1.50)
 #rtde_c.stopScript()
 def path_gen(coordinate):
-    b =[0.02]*65
+    b =[0.02]*120
     b[0] = 0
-    b[64] = 0
+    b[95] = 0
     angles = [90,120,150,180,210,240,270,240,210,180,150,120]*8
     angles.append(90)
     L = 0.1 #max displacement
