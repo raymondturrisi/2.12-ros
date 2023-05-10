@@ -62,7 +62,7 @@ def print_usage():
 if __name__ == "__main__":
     settings = termios.tcgetattr(sys.stdin)
 
-    rospy.init_node('keyboard_teleop')
+    rospy.init_node('keyboard_teleop_oncomputer')
     ur5_pub = rospy.Publisher('ur5keyboard', Int32MultiArray, queue_size=10)
     #lift_pub = rospy.Publisher('/to_jetson/lift', String, queue_size=1)
     last_update = 0 #seconds
@@ -90,6 +90,8 @@ if __name__ == "__main__":
             mode=1
         elif key=='n':
             mode=2
+        elif key=='h':
+            mode=3
         else: 
             mode=0
         if key in stepsize:

@@ -13,7 +13,14 @@ import numpy as np
 import time
 #from geometry_msgs.msg import Pose, PoseStamped
 
-
+def home(rtde_r,rtde_c):
+    pose = rtde_r.getActualTCPPose()
+    pose[3]=3.14
+    pose[4]=0.0
+    pose[5]=0.0
+    rtde_c.moveL(pose, 0.5,0.5, False)
+    time.sleep(2)
+    
 def rad_angle(arr):
 	c=[i*2*3.1415/360.0 for i in arr]
 	return c
@@ -25,7 +32,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
 
     pose = rtde_r.getActualTCPPose()
     startpose=pose[:]
-    startpose[2]+=0.1
+    startpose[2]+=0.05
     rtde_c.moveL(startpose, 0.5,0.5, False)
 
     path = path_gen(startpose)
@@ -33,6 +40,7 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     rate = rospy.Rate(10)
 
     force_array = []
+    pos_z_array = []
     timer = []
     start_time = time.time()
 
@@ -56,12 +64,14 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
         rate.sleep() #decide what to do here
         #time.sleep(0.1)
     #time.sleep(2)
-    
+   
     rtde_c.moveL(pose, 0.5,0.5, True)
     time.sleep(2)
     rtde_c.stopL(0.5, True)
 
-    plt.plot(force_array, timer)
+    plt.plot(timer, force_array)
+    plt.show()
+    
 
     return 0
 # Move to initial joint position with a regular moveJ
@@ -82,8 +92,8 @@ def path_gen(coordinate):
         newpose=coordinate[:]
         thing = math.radians(angles[i])
         newpose[2] = coordinate[2] +  L/2*math.sin(thing) - L/2
-        newpose.append(0.8) #velocity too fast
-        newpose.append(1)
+        newpose.append(1.5) #velocity too fast
+        newpose.append(2)
         # newpose.append(abs(-1*L*omega*math.cos(thing))) #velocity
         # newpose.append(abs(L*omega*omega*math.sin(thing) + 0.1)) #accel
         newpose.append(b[i])
@@ -108,8 +118,10 @@ def avatar_callback(string_data):
 def urmessage_callback(data):
     if data.data[0]==1:
         CPR(rtde_r, rtde_c, ur5_pub_force,ur5_pub_pos)
-    if data.data[0]==2:
+    elif data.data[0]==2:
         navigation(rtde_r, rtde_c,ur5_pub_navigation)
+    elif data.data[0]==3:
+        home(rtde_r,rtde_c)
     else:
         #jog mode 
         currpos=rtde_r.getActualTCPPose()
@@ -143,38 +155,57 @@ def navigation_callback(string_data):
     triangleloc = string_data.data
 
 def navigation(rtde_r,rtde_c,ur5_pub_navigation):
-    startr=triangleloc[0]
-    startc=triangleloc[1]
-    print(triangleloc)
-    pose=rtde_r.getActualTCPPose()
-    pose1=pose[:]
-    pose1[0]+=0.1
-    rtde_c.moveL(pose1, 0.5,0.5, False)
+    while (triangleloc[2]>0.2):
+	    startr=triangleloc[0]
+	    startc=triangleloc[1]
+	    
+	    print(triangleloc)
+	    pose=rtde_r.getActualTCPPose()
+	    pose1=pose[:]
+	    pose1[0]+=triangleloc[2]/4
+	    rtde_c.moveL(pose1, 0.5,0.5, False)
+	    time.sleep(3)
+	    r1=triangleloc[0]
+	    c1=triangleloc[1]
+	    print(triangleloc)
+	    '''
+	    
+	    pose2=pose[:]
+	    pose2[0]+=0.1
+	    rtde_c.moveL(pose2, 0.5,0.5, False)
+	    x2=triangleloc[0]
+	    y2=triangleloc[1]
+	    '''
+	    deltar=startr-r1
+	    deltac=-(startc-c1)
+	    print(deltar, deltac)
+	    K=0.1/(deltac**2+deltar**2)**0.5
+	    theta=math.atan2(deltac,deltar)
+	    #theta=0
+	    deltax=K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
+	    deltay=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
+	    print('K',K)
+	    print('theta',theta)
+	    
+	    print(deltax,deltay) 
+	    finalpose=pose[:]
+	    finalpose[0]+=deltax
+	    finalpose[1]+=deltay
+	    finalpose[2]-=0.10
+	    rtde_c.moveL(finalpose, 0.5,0.5, False)
+	    time.sleep(3)
+	    print('done')
+	    
+    currpos=rtde_r.getActualTCPPose()
+    dx=0.06
+    dy=0.04
+    currpos[0]+=dx*math.cos(theta)+dy*math.sin(theta)
+    currpos[1]+=dx*math.sin(theta)-dy*math.cos(theta)
+    rtde_c.moveL(currpos, 0.5,0.5, False)
     time.sleep(3)
-    r1=triangleloc[0]
-    c1=triangleloc[1]
-    print(triangleloc)
-    '''
-    pose2=pose[:]
-    pose2[0]+=0.1
-    rtde_c.moveL(pose2, 0.5,0.5, False)
-    x2=triangleloc[0]
-    y2=triangleloc[1]
-    '''
-    deltar=r1-startr
-    deltac=c1-startc
-    K=0.1/(deltac**2+deltar**2)**0.5
-    theta=math.atan2(deltar,deltac)
-    theta=0
-    deltay=-K*((startr-240)*math.cos(theta)-(startc-320)*math.sin(theta))
-    deltax=K*((startc-320)*math.cos(theta)+(startr-240)*math.sin(theta))
-    print('K',K)
-    print('theta',theta)
-    print(deltax,deltay) 
-    finalpose=pose[:]
-    finalpose[0]+=deltax
-    finalpose[1]+=deltay
-    rtde_c.moveL(finalpose, 0.5,0.5, False)
+    
+    
+	    
 
 
 
