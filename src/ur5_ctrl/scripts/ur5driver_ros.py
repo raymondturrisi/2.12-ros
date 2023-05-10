@@ -15,9 +15,9 @@ import time
 
 def home(rtde_r,rtde_c):
     pose = rtde_r.getActualTCPPose()
-    pose[0]=-0.49
-    pose[1]=-0.525
-    pose[2]=0.30
+    pose[0]=-0.103
+    pose[1]=-0.723
+    pose[2]=0.512
     pose[3]=3.14
     pose[4]=0.0
     pose[5]=0.0
@@ -26,9 +26,9 @@ def home(rtde_r,rtde_c):
 
 def pickup(rtde_r,rtde_c):
     pose = rtde_r.getActualTCPPose()
-    pose[0]=-0.11
-    pose[1]=-0.649
-    pose[2]=0.10
+    pose[0]=0.335
+    pose[1]=-0.348
+    pose[2]=-0.020
     pose[3]=3.14
     pose[4]=0.0
     pose[5]=0.0
