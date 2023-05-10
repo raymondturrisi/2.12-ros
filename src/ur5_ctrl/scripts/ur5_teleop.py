@@ -64,6 +64,7 @@ if __name__ == "__main__":
 
     rospy.init_node('keyboard_teleop_oncomputer')
     ur5_pub = rospy.Publisher('ur5keyboard', Int32MultiArray, queue_size=10)
+    ur5_estop= rospy.Publisher('ur5estop', String, queue_size=10)
     #lift_pub = rospy.Publisher('/to_jetson/lift', String, queue_size=1)
     last_update = 0 #seconds
     update_interval = 3 #seconds
@@ -93,6 +94,7 @@ if __name__ == "__main__":
         elif key=='h':
             mode=3
         elif key=='e':
+            ur5_estop.publish(String())
             mode=4
         else: 
             mode=0

@@ -27,6 +27,8 @@ def rad_angle(arr):
 
 def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     #move to starting position, perhaps use forcemode and stuff
+    global estop
+    estop=0
     speed = [0, 0, -0.100, 0, 0, 0]
     rtde_c.moveUntilContact(speed)
 
@@ -43,11 +45,16 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     pos_z_array = []
     timer = []
     start_time = time.time()
-
     for i in range(60):
         #print(f"Magnitude of force at loop {i} is {np.linalg.norm(rtde_r.getActualTCPForce())}")
         #print(rtde_r.getActualTCPForce())
         #
+        print('estop',estop)
+        if estop==1:
+            print('estop!!!')
+            rtde_c.stopL(0.5, False)
+            estop=0
+            break
         workpos = rtde_r.getActualTCPPose()
         force = rtde_r.getActualTCPForce()  
         force.append(1)
@@ -70,10 +77,11 @@ def CPR(rtde_r, rtde_c, ur5_pub_force, ur5_pub_pos):
     rtde_c.moveL(pose, 0.5,0.5, True)
     time.sleep(2)
     rtde_c.stopL(0.5, True)
+    print('estop', estop)
 
-    plt.plot(timer, force_array)
-    plt.show()
-    
+    #plt.plot(timer, force_array)
+    #plt.show()
+    #time.sleep(5)
 
     return 0
 # Move to initial joint position with a regular moveJ
@@ -118,6 +126,7 @@ def avatar_callback(string_data):
 
 
 def urmessage_callback(data):
+    global estop
     if data.data[0]==1:
         CPR(rtde_r, rtde_c, ur5_pub_force,ur5_pub_pos)
     elif data.data[0]==2:
@@ -125,7 +134,9 @@ def urmessage_callback(data):
     elif data.data[0]==3:
         home(rtde_r,rtde_c)
     elif data.data[0]==4:
-    	rtde_c.stopL(0.5, False)
+        print('estop heyyy')
+        estop=1
+    	
     else:
         #jog mode 
         currpos=rtde_r.getActualTCPPose()
@@ -213,7 +224,10 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
     
 	    
 
-
+def estop_callback(msg):
+    global estop
+    estop=1
+    print('estoping')
 
 
     
@@ -222,6 +236,7 @@ def navigation(rtde_r,rtde_c,ur5_pub_navigation):
 if __name__ == '__main__':
     # Initialize the ROS node
     triangleloc=[0,0,0]
+    estop=0
     rospy.init_node('ur5node')
     # Connect to the UR5 robot via the rtde_control and rtde_receive interfaces
     rtde_c = rtde_control.RTDEControlInterface('169.254.9.43')
@@ -232,5 +247,6 @@ if __name__ == '__main__':
     # Subscribe to the ROS Pose topic
     rospy.Subscriber('ur5keyboard', Int32MultiArray, urmessage_callback)
     rospy.Subscriber('ur5keyboard_avatar', String, avatar_callback)
+    rospy.Subscriber('ur5estop', String, estop_callback)
     rospy.Subscriber('/realsense_ur5/depth/tri_loc', Float32MultiArray, navigation_callback)  #do we want to get increments or what?
     publish_pose()
