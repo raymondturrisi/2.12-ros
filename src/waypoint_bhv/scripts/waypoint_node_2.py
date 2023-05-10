@@ -205,9 +205,9 @@ class WaypointController:
         self.last_orientation = 0
 
         #waypoint as (x,y,end_heading,start_flag,end_flag)
-        wpt1 = (2.7, 0.41, 0, "wpt_1", "wpt_2")
-        wpt2 = (3.18, 0.41, 0, "wpt_2", "aligning_aed")
-        wpt3 = (0.62, 2.32, 180, "wpt_3", "unpacking_aed")
+        wpt1 = (2.4, 0.48, 0, "wpt_1", "wpt_2")
+        wpt2 = (2.93, 0.48, 0, "wpt_2", "aligning_aed")
+        wpt3 = (0.09, 2.32, 180, "wpt_3", "unpacking_aed")
 
         wptbhv_1 = WaypointBHV(wpt1, self.grid)
         wptbhv_2 = WaypointBHV(wpt2, self.grid)
@@ -275,6 +275,11 @@ class WaypointController:
                                 self.publish_ctrl_msg(ctrl_msg)
                                 self.last_ctrl_pub_t = time.perf_counter()
                         else:
+                            #If no plan was found, just go straight to the goal - (for bugs?)
+                            if time.perf_counter() > self.last_ctrl_pub_t+0.2:
+                                ctrl_msg = self.get_ctrl_string(self.current_position, [self.bhv.goal_xy])
+                                self.publish_ctrl_msg(ctrl_msg)
+                                self.last_ctrl_pub_t = time.perf_counter()
                             print("No plan found")
 
                     #If we are at the waypoints current target, we raise its end flag and change the system state
